@@ -1,10 +1,7 @@
 package com.masu.auth_service.controller;
 
 import com.masu.auth_service.Model.User;
-import com.masu.auth_service.dto.AuthResponse;
-import com.masu.auth_service.dto.LoginRequest;
-import com.masu.auth_service.dto.RegisterRequest;
-import com.masu.auth_service.dto.UserResponse;
+import com.masu.auth_service.dto.*;
 import com.masu.auth_service.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -64,6 +61,16 @@ public class AuthController {
     ) {
 
         AuthResponse response = authService.login(request);
+
+        return ResponseEntity.ok(response);
+    }
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(
+            @Valid @RequestBody RefreshTokenRequest request
+    ) {
+
+        AuthResponse response =
+                authService.refresh(request.refreshToken());
 
         return ResponseEntity.ok(response);
     }

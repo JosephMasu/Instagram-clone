@@ -1,5 +1,6 @@
 package com.masu.auth_service.security;
 
+import com.masu.auth_service.service.CustomUserDetailsService;
 import com.masu.auth_service.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
