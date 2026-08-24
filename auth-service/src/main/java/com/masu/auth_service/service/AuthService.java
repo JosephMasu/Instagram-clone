@@ -133,7 +133,6 @@ public class AuthService {
                 refreshTokenService.createRefreshToken(
                         user.getId()
                 );
-
         return new AuthResponse(
                 accessToken,
                 newRefreshToken,
