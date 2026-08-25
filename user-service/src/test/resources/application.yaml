@@ -1,0 +1,15 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: user-service
+
+  mongodb:
+    uri: mongodb://localhost:27017/instagram_users_test
+    auto-index-creation: true
+
+jwt:
+  secret: test-secret-that-is-long-enough-for-hmac-sha-256
+  expiration: 3600000
+  refresh-expiration: 604800000

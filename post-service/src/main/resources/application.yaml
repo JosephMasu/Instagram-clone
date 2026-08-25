@@ -1,0 +1,18 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: post-service
+
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/instagram_posts}
+
+jwt:
+  secret: ${JWT_SECRET}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
