@@ -3,7 +3,7 @@ spring:
     name: auth-service
 
   mongodb:
-    uri: mongodb://localhost:27017/instagram_auth
+    uri: ${MONGODB_URI:mongodb://localhost:27017/instagram_auth}
 
 server:
   port: 8081
@@ -18,5 +18,6 @@ management:
           - metrics
 
 jwt:
-  secret: "Your-secretkey"
-  expiration: 3600000
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:3600000}
+  refresh-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
