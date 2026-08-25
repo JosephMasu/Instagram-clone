@@ -38,14 +38,17 @@ public class PostController {
     }
 
     @GetMapping
-    public ResponseEntity<List<PostResponse>> getFeed() {
-        return ResponseEntity.ok(postService.getFeed());
+    public ResponseEntity<List<PostResponse>> getFeed( Authentication authentication) {
+        String currentUserId =
+                authentication.getName();
+        return ResponseEntity.ok(postService.getFeed(currentUserId));
     }
 
     @GetMapping("/{postId}")
-    public ResponseEntity<PostResponse> getPost(
+    public ResponseEntity<PostResponse> getPost(Authentication authentication,
             @PathVariable String postId
     ) {
-        return ResponseEntity.ok(postService.getPost(postId));
+        String currentUserId= authentication.getName();
+        return ResponseEntity.ok(postService.getPost(postId, currentUserId));
     }
 }

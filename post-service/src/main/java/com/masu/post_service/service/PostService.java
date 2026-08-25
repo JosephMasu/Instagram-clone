@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -36,30 +37,85 @@ public class PostService {
                 .updatedAt(now)
                 .build();
 
+        Post savadPost = postRepository.save(post);
+            return PostResponse.from(savadPost, 0, false);
+
+    }
+
+    public List<PostResponse> getFeed(String currentUserId) {
+        return postRepository
+                .findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(post -> {
+
+                    long likeCount =
+                            likeRepository.countByPostId(
+                                    post.getId()
+                            );
+
+                    boolean isLiked =
+                            likeRepository.existsByUserIdAndPostId(
+                                    currentUserId,
+                                    post.getId()
+                            );
+
+                    return PostResponse.from(
+                            post,
+                            likeCount,
+                            isLiked
+                    );
+                })
+                .toList();
+    }
+
+    public PostResponse getPost(String postId, String currentUserId) {
+        Post post = postRepository
+                .findById(postId)
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                "Post not found"
+                        )
+                );
+
+        long likeCount =
+                likeRepository.countByPostId(postId);
+
+        boolean isLiked =
+                likeRepository.existsByUserIdAndPostId(
+                        currentUserId,
+                        postId
+                );
+
         return PostResponse.from(
-                postRepository.save(post)
+                post,
+                likeCount,
+                isLiked
         );
     }
 
-    public List<PostResponse> getFeed() {
-        return postRepository.findAllByOrderByCreatedAtDesc()
-                .stream()
-                .map(PostResponse::from)
-                .toList();
-    }
+    public List<PostResponse> getPostsByUser(String postId, String currentUserId) {
+        Post post = postRepository
+                .findById(postId)
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                "Post not found"
+                        )
+                );
 
-    public PostResponse getPost(String postId) {
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new PostNotFoundException("Post not found"));
+        long likeCount =
+                likeRepository.countByPostId(postId);
 
-        return PostResponse.from(post);
-    }
+        boolean isLiked =
+                likeRepository.existsByUserIdAndPostId(
+                        currentUserId,
+                        postId
+                );
 
-    public List<PostResponse> getPostsByUser(String userId) {
-        return postRepository.findByUserIdOrderByCreatedAtDesc(userId)
-                .stream()
-                .map(PostResponse::from)
-                .toList();
+        return Collections.singletonList(PostResponse.from(
+                post,
+                likeCount,
+                isLiked
+        ));
     }
 
     public void likePost(
