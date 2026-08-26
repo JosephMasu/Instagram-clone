@@ -9,6 +9,9 @@ import com.masu.user_service.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import com.masu.events.UserCreatedEvent;
+import com.masu.user_service.kafka.UserEventProducer;
+
 import java.time.Instant;
 import java.util.Locale;
 
@@ -18,6 +21,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final FollowService followService;
+    private final UserEventProducer userEventProducer;
 
     public UserResponse createProfile(
             String authUserId,
@@ -46,7 +50,20 @@ public class UserService {
                 .updatedAt(now)
                 .build();
 
-        return followService.toResponse(userRepository.save(user), authUserId);
+
+        User savedUser = userRepository.save(user);
+
+        UserCreatedEvent event = new UserCreatedEvent(
+                savedUser.getId(),
+                savedUser.getAuthUserId(),
+                savedUser.getUsername(),
+                savedUser.getFirstName(),
+                savedUser.getLastName()
+        );
+
+        userEventProducer.publishUserCreated(event);
+
+        return followService.toResponse(savedUser, authUserId);
     }
 
     public UserResponse getMyProfile(String authUserId) {
