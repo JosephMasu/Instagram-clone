@@ -3,32 +3,29 @@ package com.masu.user_service.config;
 import com.masu.events.UserCreatedEvent;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.serializer.JsonSerializer;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.springframework.kafka.support.serializer.JsonSerializer;
-
 
 @Configuration
 public class KafkaConfig {
 
-    /**
-     * Creates the KafkaTemplate used by the User Service
-     * to publish UserCreatedEvent messages to Kafka.
-     */
     @Bean
-    public KafkaTemplate<String, UserCreatedEvent> kafkaTemplate() {
+    public KafkaTemplate<String, UserCreatedEvent> kafkaTemplate(
+            @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers
+    ) {
 
         Map<String, Object> config = new HashMap<>();
 
-        // Address of the Kafka broker
         config.put(
                 ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
-                "localhost:9092"
+                bootstrapServers
         );
 
         // Kafka message keys are serialized as Strings

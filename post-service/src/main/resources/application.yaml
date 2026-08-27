@@ -8,6 +8,9 @@ spring:
   mongodb:
     uri: ${MONGODB_URI:mongodb://localhost:27017/instagram_posts}
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
 jwt:
   secret: ${JWT_SECRET}
 

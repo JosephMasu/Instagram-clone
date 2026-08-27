@@ -1,0 +1,116 @@
+services:
+
+  # =========================
+  # MongoDB
+  # =========================
+  mongodb:
+    image: mongo:8
+    container_name: instagram-mongodb
+    ports:
+      - "27017:27017"
+    networks:
+      - instagram-network
+
+
+  # =========================
+  # Kafka
+  # =========================
+  kafka:
+    image: apache/kafka:4.2.1
+    container_name: instagram-kafka
+    ports:
+      - "9092:9092"
+    networks:
+      - instagram-network
+
+
+  # =========================
+  # Auth Service
+  # =========================
+  auth-service:
+    image: instagram-auth-service:latest
+    container_name: instagram-auth-service
+    ports:
+      - "8081:8081"
+    env_file:
+      - .env
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/instagram_auth
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-3600000}
+    depends_on:
+      - mongodb
+    networks:
+      - instagram-network
+
+
+  # =========================
+  # User Service
+  # =========================
+  user-service:
+    image: instagram-user-service:latest
+    container_name: instagram-user-service
+    ports:
+      - "8082:8082"
+    env_file:
+      - .env
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/instagram_users
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-3600000}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - mongodb
+      - kafka
+    networks:
+      - instagram-network
+
+
+  # =========================
+  # Post Service
+  # =========================
+  post-service:
+    image: instagram-post-service:latest
+    container_name: instagram-post-service
+    ports:
+      - "8083:8083"
+    env_file:
+      - .env
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/instagram_posts
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-3600000}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      - mongodb
+      - kafka
+    networks:
+      - instagram-network
+
+
+  # =========================
+  # API Gateway
+  # =========================
+  api-gateway:
+    image: instagram-api-gateway:latest
+    container_name: instagram-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      AUTH_SERVICE_URL: http://auth-service:8081
+      USER_SERVICE_URL: http://user-service:8082
+      POST_SERVICE_URL: http://post-service:8083
+    depends_on:
+      - auth-service
+      - user-service
+      - post-service
+    networks:
+      - instagram-network
+
+
+# =========================
+# Network
+# =========================
+networks:
+  instagram-network:
+    external: true
