@@ -81,10 +81,6 @@ public class AuthService {
                         )
                 );
 
-        String token = jwtService.generateToken(
-                user.getId().toHexString()
-        );
-
         String accessToken = jwtService.generateToken(
                 user.getId().toHexString()
         );
@@ -97,7 +93,7 @@ public class AuthService {
                 accessToken,
                 refreshToken,
                 "Bearer",
-                3600000
+                jwtService.getExpiration()
         );
     }
 
@@ -137,7 +133,7 @@ public class AuthService {
                 accessToken,
                 newRefreshToken,
                 "Bearer",
-                3600000
+                jwtService.getExpiration()
         );
     }
 

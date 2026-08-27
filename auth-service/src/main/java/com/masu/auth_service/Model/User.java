@@ -6,7 +6,6 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Document(collection = "users")
 public class User {

@@ -1,1 +1,3 @@
+com/masu/events/UserFollowedEvent.class
+com/masu/events/UserUnfollowedEvent.class
 com/masu/events/UserCreatedEvent.class

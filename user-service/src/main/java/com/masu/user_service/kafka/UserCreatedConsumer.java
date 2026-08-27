@@ -12,6 +12,7 @@ public class UserCreatedConsumer {
      * to the user.created Kafka topic.
      */
     @KafkaListener(
+            id = "user-created",
             topics = "user.created",
             groupId = "user-service"
     )

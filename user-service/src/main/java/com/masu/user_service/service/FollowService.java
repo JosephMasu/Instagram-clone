@@ -2,11 +2,13 @@ package com.masu.user_service.service;
 
 import com.masu.user_service.dto.UserResponse;
 import com.masu.user_service.exception.UserNotFoundException;
+import com.masu.user_service.kafka.UserEventFollowedProducer;
 import com.masu.user_service.model.Follow;
 import com.masu.user_service.model.User;
 import com.masu.user_service.repository.FollowRepository;
 import com.masu.user_service.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -15,24 +17,27 @@ import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class FollowService {
 
     private final FollowRepository followRepository;
     private final UserRepository userRepository;
+    private final UserEventFollowedProducer userEventFollowedProducer;
+
 
     public void follow(
             String followerAuthUserId,
-            String targetProfileId
+            String targetUserId
     ) {
-
-        User targetUser = userRepository.findById(targetProfileId)
+        User targetUser = userRepository.findById(targetUserId)
+                .or(() -> userRepository.findByAuthUserId(targetUserId))
                 .orElseThrow(() ->
-                        new IllegalStateException("User profile not found"));
+                        new UserNotFoundException("User profile not found"));
 
         String followingAuthUserId = targetUser.getAuthUserId();
 
         if (followerAuthUserId.equals(followingAuthUserId)) {
-            throw new IllegalStateException(
+            throw new IllegalArgumentException(
                     "You cannot follow yourself"
             );
         }
@@ -53,6 +58,20 @@ public class FollowService {
                 .build();
 
         followRepository.save(follow);
+        adjustFollowCounts(followerAuthUserId, followingAuthUserId, 1);
+        try {
+            userEventFollowedProducer.publishUserFollowed(
+                    followerAuthUserId,
+                    followingAuthUserId
+            );
+        } catch (Exception exception) {
+            log.error(
+                    "Failed to publish UserFollowedEvent follower={} following={}",
+                    followerAuthUserId,
+                    followingAuthUserId,
+                    exception
+            );
+        }
     }
     public void unfollow(
             String followerAuthUserId,
@@ -60,8 +79,9 @@ public class FollowService {
     ) {
 
         User targetUser = userRepository.findById(targetProfileId)
+                .or(() -> userRepository.findByAuthUserId(targetProfileId))
                 .orElseThrow(() ->
-                        new IllegalStateException("User profile not found"));
+                        new UserNotFoundException("User profile not found"));
 
         String followingAuthUserId = targetUser.getAuthUserId();
 
@@ -76,6 +96,20 @@ public class FollowService {
                         ));
 
         followRepository.delete(follow);
+        adjustFollowCounts(followerAuthUserId, followingAuthUserId, -1);
+        try {
+            userEventFollowedProducer.publishUserUnfollowed(
+                    followerAuthUserId,
+                    followingAuthUserId
+            );
+        } catch (Exception exception) {
+            log.error(
+                    "Failed to publish UserUnfollowedEvent follower={} following={}",
+                    followerAuthUserId,
+                    followingAuthUserId,
+                    exception
+            );
+        }
     }
     public List<UserResponse> getFollowers(String userId) {
         User user = requireUser(userId);
@@ -118,6 +152,21 @@ public class FollowService {
         }
 
         return UserResponse.from(user, followerCount, followingCount, isFollowing);
+    }
+
+    private void adjustFollowCounts(
+            String followerAuthUserId,
+            String followingAuthUserId,
+            int delta
+    ) {
+        userRepository.findByAuthUserId(followerAuthUserId).ifPresent(follower -> {
+            follower.setFollowingCount(Math.max(0, follower.getFollowingCount() + delta));
+            userRepository.save(follower);
+        });
+        userRepository.findByAuthUserId(followingAuthUserId).ifPresent(following -> {
+            following.setFollowerCount(Math.max(0, following.getFollowerCount() + delta));
+            userRepository.save(following);
+        });
     }
 
     private void requireProfile(String authUserId) {

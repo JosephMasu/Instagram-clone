@@ -1,6 +1,5 @@
 package com.masu.auth_service.controller;
 
-import com.masu.auth_service.Model.User;
 import com.masu.auth_service.dto.*;
 import com.masu.auth_service.service.AuthService;
 import jakarta.validation.Valid;
@@ -27,15 +26,7 @@ public class AuthController {
         CustomUserDetails userDetails =
                 (CustomUserDetails) authentication.getPrincipal();
 
-        User user = userDetails.getUser();
-
-        UserResponse response = new UserResponse(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail()
-        );
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(UserResponse.from(userDetails.getUser()));
     }
 
     @PostMapping("/register")
@@ -43,17 +34,9 @@ public class AuthController {
             @Valid @RequestBody RegisterRequest request
     ) {
 
-        User user = authService.register(request);
-
-        UserResponse response = new UserResponse(
-                user.getId(),
-                user.getUsername(),
-                user.getEmail()
-        );
-
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(response);
+                .body(UserResponse.from(authService.register(request)));
     }
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(

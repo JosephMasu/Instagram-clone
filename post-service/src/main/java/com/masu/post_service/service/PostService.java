@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -37,8 +36,8 @@ public class PostService {
                 .updatedAt(now)
                 .build();
 
-        Post savadPost = postRepository.save(post);
-            return PostResponse.from(savadPost, 0, false);
+        Post savedPost = postRepository.save(post);
+        return PostResponse.from(savedPost, 0, false);
 
     }
 
@@ -72,9 +71,7 @@ public class PostService {
         Post post = postRepository
                 .findById(postId)
                 .orElseThrow(() ->
-                        new IllegalStateException(
-                                "Post not found"
-                        )
+                        new PostNotFoundException("Post not found")
                 );
 
         long likeCount =
@@ -93,29 +90,19 @@ public class PostService {
         );
     }
 
-    public List<PostResponse> getPostsByUser(String postId, String currentUserId) {
-        Post post = postRepository
-                .findById(postId)
-                .orElseThrow(() ->
-                        new IllegalStateException(
-                                "Post not found"
+    public List<PostResponse> getPostsByUser(String userId, String currentUserId) {
+        return postRepository
+                .findByUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(post -> PostResponse.from(
+                        post,
+                        likeRepository.countByPostId(post.getId()),
+                        likeRepository.existsByUserIdAndPostId(
+                                currentUserId,
+                                post.getId()
                         )
-                );
-
-        long likeCount =
-                likeRepository.countByPostId(postId);
-
-        boolean isLiked =
-                likeRepository.existsByUserIdAndPostId(
-                        currentUserId,
-                        postId
-                );
-
-        return Collections.singletonList(PostResponse.from(
-                post,
-                likeCount,
-                isLiked
-        ));
+                ))
+                .toList();
     }
 
     public void likePost(
@@ -155,13 +142,17 @@ public class PostService {
         //
         // This is important: we don't simply delete by postId,
         // because many different users can like the same post.
+        if (!postRepository.existsById(postId)) {
+            throw new PostNotFoundException("Post not found");
+        }
+
         Like like = likeRepository
                 .findByUserIdAndPostId(
                         userId,
                         postId
                 )
                 .orElseThrow(() ->
-                        new PostNotFoundException("Post is not liked")
+                        new IllegalStateException("Post is not liked")
                 );
 
         // Delete only this user's like.

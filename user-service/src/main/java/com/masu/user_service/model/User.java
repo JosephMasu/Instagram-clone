@@ -41,6 +41,12 @@ public class User {
     @JsonProperty("isPrivate")
     private boolean isPrivate;
 
+    @Builder.Default
+    private long followerCount = 0;
+
+    @Builder.Default
+    private long followingCount = 0;
+
     private Instant createdAt;
 
     private Instant updatedAt;

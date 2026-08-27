@@ -7,6 +7,7 @@ import com.masu.user_service.exception.UserNotFoundException;
 import com.masu.user_service.model.User;
 import com.masu.user_service.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import com.masu.events.UserCreatedEvent;
@@ -17,6 +18,7 @@ import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserService {
 
     private final UserRepository userRepository;
@@ -45,7 +47,9 @@ public class UserService {
                 .lastName(request.lastName())
                 .bio(request.bio())
                 .profilePictureUrl(request.profilePictureUrl())
-                .isPrivate(request.isPrivate())
+                .isPrivate(request.isPrivateProfile())
+                .followerCount(0)
+                .followingCount(0)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -61,7 +65,11 @@ public class UserService {
                 savedUser.getLastName()
         );
 
-        userEventProducer.publishUserCreated(event);
+        try {
+            userEventProducer.publishUserCreated(event);
+        } catch (Exception exception) {
+            log.error("Failed to publish UserCreatedEvent for user {}", savedUser.getId(), exception);
+        }
 
         return followService.toResponse(savedUser, authUserId);
     }
