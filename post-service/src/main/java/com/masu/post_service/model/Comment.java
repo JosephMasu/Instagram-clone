@@ -23,6 +23,8 @@ public class Comment {
 
     private String userId;
 
+    private String parentCommentId;
+
     private String text;
 
     private Instant createdAt;

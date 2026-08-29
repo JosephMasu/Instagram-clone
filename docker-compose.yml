@@ -81,6 +81,29 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-3600000}
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      USER_SERVICE_URL: http://user-service:8082
+    depends_on:
+      - mongodb
+      - kafka
+      - user-service
+    networks:
+      - instagram-network
+
+
+  # =========================
+  # Notification Service
+  # =========================
+  notification-service:
+    image: instagram-notification-service:latest
+    container_name: instagram-notification-service
+    ports:
+      - "8084:8084"
+    env_file:
+      - .env
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/instagram_notifications
+      JWT_SECRET: ${JWT_SECRET}
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     depends_on:
       - mongodb
       - kafka
@@ -100,10 +123,12 @@ services:
       AUTH_SERVICE_URL: http://auth-service:8081
       USER_SERVICE_URL: http://user-service:8082
       POST_SERVICE_URL: http://post-service:8083
+      NOTIFICATION_SERVICE_URL: http://notification-service:8084
     depends_on:
       - auth-service
       - user-service
       - post-service
+      - notification-service
     networks:
       - instagram-network
 

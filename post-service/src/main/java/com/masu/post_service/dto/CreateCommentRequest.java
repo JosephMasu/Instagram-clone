@@ -7,6 +7,8 @@ public record CreateCommentRequest(
 
         @NotBlank(message = "Comment cannot be empty")
         @Size(max = 1000, message = "Comment cannot exceed 1000 characters")
-        String text
+        String text,
+
+        String parentCommentId
 
 ) {}

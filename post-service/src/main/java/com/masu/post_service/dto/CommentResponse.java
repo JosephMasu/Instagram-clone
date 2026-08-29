@@ -8,15 +8,17 @@ public record CommentResponse(
         String id,
         String postId,
         String userId,
+        String parentCommentId,
         String text,
         Instant createdAt,
         Instant updatedAt
 ) {
-    public static CommentResponse from(Comment comment){
+    public static CommentResponse from(Comment comment) {
         return new CommentResponse(
                 comment.getId(),
                 comment.getPostId(),
                 comment.getUserId(),
+                comment.getParentCommentId(),
                 comment.getText(),
                 comment.getCreatedAt(),
                 comment.getUpdatedAt()

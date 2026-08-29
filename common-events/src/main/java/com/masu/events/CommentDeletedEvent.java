@@ -6,6 +6,7 @@ public record CommentDeletedEvent(
         String commentId,
         String postId,
         String userId,
+        String postOwnerId,
         Instant createdAt
 ) {
 }

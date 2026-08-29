@@ -77,7 +77,7 @@ public class PostService {
 
         // First make sure the post actually exists.
         // Otherwise we could create a Like pointing to nothing.
-        requirePost(postId);
+        Post post = requirePost(postId);
 
         if (likeRepository.existsByUserIdAndPostId(
                 userId,
@@ -95,7 +95,7 @@ public class PostService {
         Like savedLike = likeRepository.save(like);
         refreshEngagementCounts(postId);
         try {
-            postEventProducer.publishLikeCreated(savedLike);
+            postEventProducer.publishLikeCreated(savedLike, post.getUserId());
         } catch (Exception exception) {
             log.error(
                     "Failed to publish like.created likeId={} postId={}",
@@ -115,7 +115,7 @@ public class PostService {
         //
         // This is important: we don't simply delete by postId,
         // because many different users can like the same post.
-        requirePost(postId);
+        Post post = requirePost(postId);
 
         Like like = likeRepository
                 .findByUserIdAndPostId(
@@ -129,7 +129,7 @@ public class PostService {
         likeRepository.delete(like);
         refreshEngagementCounts(postId);
         try {
-            postEventProducer.publishLikeDeleted(like);
+            postEventProducer.publishLikeDeleted(like, post.getUserId());
         } catch (Exception exception) {
             log.error(
                     "Failed to publish like.deleted likeId={} postId={}",
