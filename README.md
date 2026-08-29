@@ -1,67 +1,105 @@
 # Instagram clone
 
-**Spring Boot microservices + Kafka + MongoDB + Angular** — a full-stack clone of Instagram-style auth, profiles, posts, likes, comments, and notifications.
+A full-stack Instagram-style app: **Java 21 / Spring Boot microservices** on the backend and **Angular 22** on the frontend. Not affiliated with Meta.
 
-Not affiliated with Meta. This is a learning architecture: each domain owns its own database, the UI talks to one gateway, and social actions fan out as events.
-
-[Java 21](https://openjdk.org/) · [Spring Boot 4](https://spring.io/projects/spring-boot) · [Spring Cloud Gateway](https://spring.io/projects/spring-cloud-gateway) · [Apache Kafka](https://kafka.apache.org/) · [MongoDB](https://www.mongodb.com/) · [Angular 22](https://angular.dev/) · [Docker](https://www.docker.com/)
-
-## Why this repo
-
-A feed looks like one app. Underneath, **who you are**, **who you follow**, **what you posted**, and **who should be notified** are different problems. This project splits them into services so you can see HTTP commands, JWT identity, and Kafka (plus a direct notify call) working together.
-
-## Features
-
-- Register / login with JWT access and refresh tokens
-- Profiles (username, bio, photo), follow / unfollow
-- Image and video posts, feed, likes, comments and replies
-- Notifications when someone else likes, comments, mentions, or follows you
-
-## Architecture
+The work goes from identity and data on the server, through a single API gateway, to an Instagram-like UI that uses those APIs.
 
 ```
-Browser (:4200)
-    │  /api
-    ▼
-API Gateway (:8080)
-    ├── Auth            :8081    instagram_auth
-    ├── User            :8082    instagram_users
-    ├── Post            :8083    instagram_posts
-    └── Notifications   :8084    instagram_notifications
+Angular (localhost:4200)
+        │  /api
+        ▼
+Spring Cloud Gateway (:8080)
+        ├── Auth service           :8081   accounts, JWT
+        ├── User service           :8082   profiles, follows
+        ├── Post service           :8083   posts, likes, comments
+        └── Notification service   :8084   inbox
 
-User & Post  ──Kafka──►  Notifications
-Post  ──HTTP──►  User (resolve comment authors)
-Post  ──HTTP──►  Notifications (likes/comments)
+MongoDB (one database per service)     Kafka (likes, comments, follows)
 ```
 
-| Path | Service |
-| --- | --- |
-| `/api/v1/auth/**` | Auth |
-| `/api/v1/users/*/posts` | Post |
-| `/api/v1/users/**` | User |
-| `/api/v1/posts/**`, `/api/v1/comments/**` | Post |
-| `/api/v1/notifications/**` | Notifications |
+---
 
-Kafka inside Docker listens on `kafka:29092`. The host uses `localhost:9092`. If the broker advertises `localhost` to containers, events never reach consumers.
+## Backend
 
-## Layout
+Maven multi-module project: `common-events`, `auth-service`, `user-service`, `post-service`, `notification-service`, `api-gateway`. Each domain service is Spring Boot 4, Spring Web MVC, Spring Security, and Spring Data MongoDB. They share a JWT secret; they do not share databases.
 
-```
-auth-service/            credentials, JWT
-user-service/            profiles, follows
-post-service/            posts, likes, comments
-notification-service/    inbox
-api-gateway/             routing
-common-events/           shared event types
-instagram-frontend/      Angular app
-```
+### Auth service
 
-## Quick start
+Register, login, refresh, and `/auth/me`. Passwords are hashed with Spring Security. Access tokens are JWTs (JJWT); `sub` is the auth user id. Refresh tokens are stored in Mongo so sessions can be rotated and invalidated. This service does not store bios or follow graphs.
 
-**Need:** Java 21, Maven, Docker, Node 20+, npm.
+### User service
+
+Profiles: username, name, bio, photo, private flag, follower counts. Create/update `/users/me`, lookup by id or username (id may be Mongo `_id` or `authUserId`). Follow and unfollow; follow events go to Kafka (`user.followed`, `user.unfollowed`). A Kafka consumer can create a profile when an auth account is created.
+
+### Post service
+
+Posts (caption, media URL, image or video), feed, per-user posts, likes, comments and replies. Mentions in comments are resolved by calling user-service. Comment responses include **username** and **profile picture** from that lookup so the UI does not show a generic “user”. Likes and comments publish Kafka events. The same actions also **HTTP POST** to notification-service (with the caller’s Bearer token) so the inbox still updates if Kafka was misconfigured. Duplicate like/comment notifications are skipped when possible. You are not notified for liking or commenting on your own post.
+
+### Notification service
+
+Inbox documents: follow, like, comment, mention, comment reply. List and unread count are scoped to the JWT `sub`. Kafka consumers listen on follow/like/comment topics. HTTP endpoints under `/api/v1/notifications/events` accept like and comment from post-service.
+
+### API gateway
+
+Spring Cloud Gateway (WebFlux) on port 8080. The browser only talks to `/api`. Routes:
+
+- `/api/v1/auth/**` → auth
+- `/api/v1/users/*/posts` → post (must be registered before `/users/**`)
+- `/api/v1/users/**` → user
+- `/api/v1/posts/**` and `/api/v1/comments/**` → post
+- `/api/v1/notifications/**` → notifications
+
+Codec size is raised so larger photo data URLs can pass through.
+
+### Data and events
+
+MongoDB 8: `instagram_auth`, `instagram_users`, `instagram_posts`, `instagram_notifications`.
+
+Apache Kafka 4 (KRaft, no ZooKeeper). Shared types live in `common-events`. In Docker, brokers advertise `kafka:29092` to other containers and `localhost:9092` to the host. Advertising `localhost` inside Docker is why consumers used to miss likes and comments.
+
+Docker Compose runs Mongo, Kafka, and all five Java images. Network `instagram-network` is external.
+
+---
+
+## Frontend
+
+`instagram-frontend/` is Angular 22: standalone components, signals, RxJS `HttpClient`, Tailwind CSS 4, Instagram-like layout (sidebar, feed, overlays). Dev server and SSR proxy `/api` to the gateway on 8080.
+
+### Auth and session
+
+Login and register pages. After login, tokens go in `AuthStore` (localStorage); the interceptor attaches `Authorization: Bearer`. On 401, refresh is shared (`shareReplay`) so parallel calls do not log everyone out. Auth guards: guests stay on login/register; the shell requires a token. Register also creates a user-service profile. There is no extra onboarding screen after login.
+
+### App shell and pages
+
+Logged-in routes: feed `/`, create `/create`, post overlay `/p/:postId`, profile `/profile/:username` (and `me`), notifications `/notifications`.
+
+- **Feed** — cards, double-tap like, counts next to icons when non-zero, skeleton while loading.
+- **Create** — pick or drop media, optional caption, share; images can be compressed to data URLs (API is URL-only).
+- **Profile** — stats, edit, change/remove photo, posts grid, skeletons.
+- **Post detail** — comments overlay; commenter **name** from the API, then lookup, then current user / post author. Delete comment (author or post owner); empty 204 responses are handled as text, not JSON.
+- **Notifications** — list, unread badge, poll after **client hydration** (`afterNextRender`), not SSR `ngOnInit`. Empty copy only when the API returns no items.
+
+Stores: `CurrentUserStore` (`/users/me`, create profile on 404), `NotificationStore`, `UserLookup` (cache by id and `authUserId`).
+
+---
+
+## How a like reaches the other user
+
+1. User B likes user A’s post (Angular → gateway → post-service).
+2. Post-service saves the like, publishes `like.created`, and calls notification-service.
+3. Notification-service stores a LIKE for A (skipped if A is B).
+4. User A’s shell polls `/api/v1/notifications` and shows the row and badge.
+
+Comments follow the same idea (`comment.created` + HTTP). Follows use Kafka from user-service.
+
+---
+
+## Run locally
+
+Java 21, Maven, Docker, Node 20+.
 
 ```bash
-cp .env.example .env          # set JWT_SECRET to a long random string
+cp .env.example .env    # set JWT_SECRET
 docker network create instagram-network
 
 docker build -f auth-service/Dockerfile -t instagram-auth-service:latest .
@@ -71,37 +109,7 @@ docker build -f notification-service/Dockerfile -t instagram-notification-servic
 docker build -f api-gateway/Dockerfile -t instagram-api-gateway:latest .
 
 docker compose up -d
-
 cd instagram-frontend && npm install && npm start
 ```
 
-- App: http://localhost:4200  
-- Gateway: http://localhost:8080  
-
-`ng serve` proxies `/api` to the gateway. Use **two accounts** to see notifications; you are not notified for your own likes or comments on your own posts.
-
-Never commit `.env`. Only `.env.example` is in git.
-
-## Ports
-
-| What | Port |
-| --- | --- |
-| Angular | 4200 |
-| Gateway | 8080 |
-| Auth / User / Post / Notifications | 8081–8084 |
-| MongoDB | 27017 |
-| Kafka (host) | 9092 |
-
-## Notes
-
-- JWT `sub` is the auth user id. Profiles store `authUserId`.
-- Media is a URL (the UI may send a compressed data URL). There is no object store.
-- Inbox polling starts after client hydration, not during SSR `ngOnInit`.
-
-## Not production
-
-Shared JWT secret, polling instead of push, data-URL photos, Compose Kafka. Fine for a portfolio clone; not a template to ship as-is.
-
-## License
-
-[MIT](LICENSE)
+App: http://localhost:4200 · Gateway: http://localhost:8080
