@@ -31,9 +31,8 @@ public class CommentService {
             Authentication authentication
     ) {
 
-        if (!postRepository.existsById(postId)) {
-            throw new PostNotFoundException("Post not found");
-        }
+        var post = postRepository.findById(postId)
+                .orElseThrow(() -> new PostNotFoundException("Post not found"));
 
         String userId = authentication.getName();
 
@@ -50,7 +49,7 @@ public class CommentService {
         Comment savedComment = commentRepository.save(comment);
         postService.refreshEngagementCounts(postId);
         try {
-            postEventProducer.publishCommentCreated(savedComment);
+            postEventProducer.publishCommentCreated(savedComment, post.getUserId());
         } catch (Exception exception) {
             log.error(
                     "Failed to publish comment.created commentId={} postId={}",
@@ -90,10 +89,14 @@ public class CommentService {
             );
         }
 
+        String postOwnerId = postRepository.findById(comment.getPostId())
+                .map(post -> post.getUserId())
+                .orElse(null);
+
         commentRepository.delete(comment);
         postService.refreshEngagementCounts(comment.getPostId());
         try {
-            postEventProducer.publishCommentDeleted(comment);
+            postEventProducer.publishCommentDeleted(comment, postOwnerId);
         } catch (Exception exception) {
             log.error(
                     "Failed to publish comment.deleted commentId={} postId={}",

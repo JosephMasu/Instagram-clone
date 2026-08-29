@@ -35,6 +35,12 @@ spring:
               predicates:
                 - Path=/api/v1/posts/**
 
+            # Notification Service
+            - id: notification-service
+              uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8084}
+              predicates:
+                - Path=/api/v1/notifications/**
+
 management:
   endpoint:
     gateway:

@@ -23,7 +23,7 @@ public class PostEventProducer {
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
-    public void publishLikeCreated(Like like) {
+    public void publishLikeCreated(Like like, String postOwnerId) {
         kafkaTemplate.send(
                 LIKE_CREATED_TOPIC,
                 like.getPostId(),
@@ -31,12 +31,13 @@ public class PostEventProducer {
                         like.getId(),
                         like.getPostId(),
                         like.getUserId(),
+                        postOwnerId,
                         like.getCreatedAt()
                 )
         );
     }
 
-    public void publishLikeDeleted(Like like) {
+    public void publishLikeDeleted(Like like, String postOwnerId) {
         kafkaTemplate.send(
                 LIKE_DELETED_TOPIC,
                 like.getPostId(),
@@ -44,12 +45,13 @@ public class PostEventProducer {
                         like.getId(),
                         like.getPostId(),
                         like.getUserId(),
+                        postOwnerId,
                         Instant.now()
                 )
         );
     }
 
-    public void publishCommentCreated(Comment comment) {
+    public void publishCommentCreated(Comment comment, String postOwnerId) {
         kafkaTemplate.send(
                 COMMENT_CREATED_TOPIC,
                 comment.getPostId(),
@@ -57,12 +59,13 @@ public class PostEventProducer {
                         comment.getId(),
                         comment.getPostId(),
                         comment.getUserId(),
+                        postOwnerId,
                         comment.getCreatedAt()
                 )
         );
     }
 
-    public void publishCommentDeleted(Comment comment) {
+    public void publishCommentDeleted(Comment comment, String postOwnerId) {
         kafkaTemplate.send(
                 COMMENT_DELETED_TOPIC,
                 comment.getPostId(),
@@ -70,6 +73,7 @@ public class PostEventProducer {
                         comment.getId(),
                         comment.getPostId(),
                         comment.getUserId(),
+                        postOwnerId,
                         Instant.now()
                 )
         );

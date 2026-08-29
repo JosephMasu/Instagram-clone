@@ -13,6 +13,7 @@ COPY common-events/pom.xml common-events/pom.xml
 COPY auth-service/pom.xml auth-service/pom.xml
 COPY user-service/pom.xml user-service/pom.xml
 COPY post-service/pom.xml post-service/pom.xml
+COPY notification-service/pom.xml notification-service/pom.xml
 COPY api-gateway/pom.xml api-gateway/pom.xml
 
 # Copy source code

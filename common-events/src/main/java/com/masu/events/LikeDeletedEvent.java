@@ -6,6 +6,7 @@ public record LikeDeletedEvent(
         String likeId,
         String postId,
         String userId,
+        String postOwnerId,
         Instant deletedAt
 ) {
 }
