@@ -12,7 +12,8 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class UserEventFollowedProducer {
 
-    private static final String USER_EVENTS_TOPIC = "user.events";
+    private static final String USER_FOLLOWED_TOPIC = "user.followed";
+    private static final String USER_UNFOLLOWED_TOPIC = "user.unfollowed";
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
@@ -26,7 +27,7 @@ public class UserEventFollowedProducer {
                Instant.now().toString()
        );
        kafkaTemplate.send(
-               USER_EVENTS_TOPIC,
+               USER_FOLLOWED_TOPIC,
                followerId,
                event);
    }
@@ -41,7 +42,7 @@ public class UserEventFollowedProducer {
                 Instant.now().toString()
         );
         kafkaTemplate.send(
-                USER_EVENTS_TOPIC,
+                USER_UNFOLLOWED_TOPIC,
                 followerId,
                 event
         );

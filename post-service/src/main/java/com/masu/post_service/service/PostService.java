@@ -3,12 +3,14 @@ package com.masu.post_service.service;
 import com.masu.post_service.dto.CreatePostRequest;
 import com.masu.post_service.dto.PostResponse;
 import com.masu.post_service.exception.PostNotFoundException;
+import com.masu.post_service.kafka.PostEventProducer;
 import com.masu.post_service.model.Like;
 import com.masu.post_service.model.Post;
 import com.masu.post_service.repository.CommentRepository;
 import com.masu.post_service.repository.LikeRepository;
 import com.masu.post_service.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -16,11 +18,13 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PostService {
 
     private final PostRepository postRepository;
     private final LikeRepository likeRepository;
     private final CommentRepository commentRepository;
+    private final PostEventProducer postEventProducer;
 
     public PostResponse createPost(
             String userId,
@@ -88,8 +92,18 @@ public class PostService {
                 .createdAt(Instant.now())
                 .build();
 
-        likeRepository.save(like);
+        Like savedLike = likeRepository.save(like);
         refreshEngagementCounts(postId);
+        try {
+            postEventProducer.publishLikeCreated(savedLike);
+        } catch (Exception exception) {
+            log.error(
+                    "Failed to publish like.created likeId={} postId={}",
+                    savedLike.getId(),
+                    postId,
+                    exception
+            );
+        }
     }
 
     public void unlikePost(
@@ -114,6 +128,16 @@ public class PostService {
 
         likeRepository.delete(like);
         refreshEngagementCounts(postId);
+        try {
+            postEventProducer.publishLikeDeleted(like);
+        } catch (Exception exception) {
+            log.error(
+                    "Failed to publish like.deleted likeId={} postId={}",
+                    like.getId(),
+                    postId,
+                    exception
+            );
+        }
     }
 
     public void refreshEngagementCounts(String postId) {

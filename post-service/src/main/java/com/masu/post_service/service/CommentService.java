@@ -3,10 +3,12 @@ package com.masu.post_service.service;
 import com.masu.post_service.dto.CommentResponse;
 import com.masu.post_service.dto.CreateCommentRequest;
 import com.masu.post_service.exception.PostNotFoundException;
+import com.masu.post_service.kafka.PostEventProducer;
 import com.masu.post_service.model.Comment;
 import com.masu.post_service.repository.CommentRepository;
 import com.masu.post_service.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
@@ -15,11 +17,13 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CommentService {
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final PostService postService;
+    private final PostEventProducer postEventProducer;
 
     public CommentResponse createComment(
             String postId,
@@ -45,6 +49,16 @@ public class CommentService {
 
         Comment savedComment = commentRepository.save(comment);
         postService.refreshEngagementCounts(postId);
+        try {
+            postEventProducer.publishCommentCreated(savedComment);
+        } catch (Exception exception) {
+            log.error(
+                    "Failed to publish comment.created commentId={} postId={}",
+                    savedComment.getId(),
+                    postId,
+                    exception
+            );
+        }
 
         return toResponse(savedComment);
     }
@@ -78,6 +92,16 @@ public class CommentService {
 
         commentRepository.delete(comment);
         postService.refreshEngagementCounts(comment.getPostId());
+        try {
+            postEventProducer.publishCommentDeleted(comment);
+        } catch (Exception exception) {
+            log.error(
+                    "Failed to publish comment.deleted commentId={} postId={}",
+                    comment.getId(),
+                    comment.getPostId(),
+                    exception
+            );
+        }
     }
 
     private CommentResponse toResponse(Comment comment) {
