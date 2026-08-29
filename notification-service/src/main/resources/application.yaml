@@ -17,6 +17,9 @@ spring:
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       properties:
         spring.json.trusted.packages: com.masu.events
+        spring.json.use.type.headers: true
+    listener:
+      missing-topics-fatal: false
 
 jwt:
   secret: ${JWT_SECRET}

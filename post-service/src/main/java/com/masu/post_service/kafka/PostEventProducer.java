@@ -7,6 +7,7 @@ import com.masu.events.LikeDeletedEvent;
 import com.masu.post_service.model.Comment;
 import com.masu.post_service.model.Like;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -14,6 +15,7 @@ import java.time.Instant;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class PostEventProducer {
 
     public static final String LIKE_CREATED_TOPIC = "like.created";
@@ -24,7 +26,7 @@ public class PostEventProducer {
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
     public void publishLikeCreated(Like like, String postOwnerId) {
-        kafkaTemplate.send(
+        send(
                 LIKE_CREATED_TOPIC,
                 like.getPostId(),
                 new LikeCreatedEvent(
@@ -38,7 +40,7 @@ public class PostEventProducer {
     }
 
     public void publishLikeDeleted(Like like, String postOwnerId) {
-        kafkaTemplate.send(
+        send(
                 LIKE_DELETED_TOPIC,
                 like.getPostId(),
                 new LikeDeletedEvent(
@@ -57,7 +59,7 @@ public class PostEventProducer {
             String parentCommentAuthorId,
             java.util.List<String> mentionedUserIds
     ) {
-        kafkaTemplate.send(
+        send(
                 COMMENT_CREATED_TOPIC,
                 comment.getPostId(),
                 new CommentCreatedEvent(
@@ -74,7 +76,7 @@ public class PostEventProducer {
     }
 
     public void publishCommentDeleted(Comment comment, String postOwnerId) {
-        kafkaTemplate.send(
+        send(
                 COMMENT_DELETED_TOPIC,
                 comment.getPostId(),
                 new CommentDeletedEvent(
@@ -85,5 +87,13 @@ public class PostEventProducer {
                         Instant.now()
                 )
         );
+    }
+
+    private void send(String topic, String key, Object event) {
+        kafkaTemplate.send(topic, key, event).whenComplete((result, exception) -> {
+            if (exception != null) {
+                log.error("Failed to publish {} key={}", topic, key, exception);
+            }
+        });
     }
 }

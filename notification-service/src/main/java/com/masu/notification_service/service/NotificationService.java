@@ -122,6 +122,13 @@ public class NotificationService {
             if (shouldSkip(actorUserId, mentionedUserId) || !notified.add(mentionedUserId)) {
                 continue;
             }
+            if (notificationRepository.existsByTypeAndActorUserIdAndCommentId(
+                    NotificationType.MENTION,
+                    actorUserId,
+                    commentId
+            )) {
+                continue;
+            }
             save(
                     mentionedUserId,
                     actorUserId,
@@ -135,7 +142,12 @@ public class NotificationService {
 
         if (parentCommentAuthorId != null
                 && !shouldSkip(actorUserId, parentCommentAuthorId)
-                && notified.add(parentCommentAuthorId)) {
+                && notified.add(parentCommentAuthorId)
+                && !notificationRepository.existsByTypeAndActorUserIdAndCommentId(
+                        NotificationType.COMMENT_REPLY,
+                        actorUserId,
+                        commentId
+                )) {
             save(
                     parentCommentAuthorId,
                     actorUserId,
@@ -149,7 +161,12 @@ public class NotificationService {
 
         if (postOwnerId != null
                 && !shouldSkip(actorUserId, postOwnerId)
-                && notified.add(postOwnerId)) {
+                && notified.add(postOwnerId)
+                && !notificationRepository.existsByTypeAndActorUserIdAndCommentId(
+                        NotificationType.COMMENT,
+                        actorUserId,
+                        commentId
+                )) {
             save(
                     postOwnerId,
                     actorUserId,
