@@ -11,7 +11,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -65,7 +67,7 @@ public class NotificationService {
         )) {
             return;
         }
-        save(recipientUserId, actorUserId, NotificationType.FOLLOW, null, null, createdAt);
+        save(recipientUserId, actorUserId, NotificationType.FOLLOW, null, null, null, createdAt);
     }
 
     public void deleteFollowNotification(String actorUserId, String recipientUserId) {
@@ -92,7 +94,7 @@ public class NotificationService {
         )) {
             return;
         }
-        save(recipientUserId, actorUserId, NotificationType.LIKE, postId, null, createdAt);
+        save(recipientUserId, actorUserId, NotificationType.LIKE, postId, null, null, createdAt);
     }
 
     public void deleteLikeNotification(String actorUserId, String postId) {
@@ -103,24 +105,68 @@ public class NotificationService {
         );
     }
 
-    public void createCommentNotification(
+    public void createCommentNotifications(
             String actorUserId,
-            String recipientUserId,
+            String postOwnerId,
+            String parentCommentAuthorId,
+            List<String> mentionedUserIds,
             String postId,
             String commentId,
+            String parentCommentId,
             Instant createdAt
     ) {
-        if (shouldSkip(actorUserId, recipientUserId) || recipientUserId == null || recipientUserId.isBlank()) {
-            return;
+        Set<String> notified = new HashSet<>();
+
+        List<String> mentions = mentionedUserIds == null ? List.of() : mentionedUserIds;
+        for (String mentionedUserId : mentions) {
+            if (shouldSkip(actorUserId, mentionedUserId) || !notified.add(mentionedUserId)) {
+                continue;
+            }
+            save(
+                    mentionedUserId,
+                    actorUserId,
+                    NotificationType.MENTION,
+                    postId,
+                    commentId,
+                    parentCommentId,
+                    createdAt
+            );
         }
-        save(recipientUserId, actorUserId, NotificationType.COMMENT, postId, commentId, createdAt);
+
+        if (parentCommentAuthorId != null
+                && !shouldSkip(actorUserId, parentCommentAuthorId)
+                && notified.add(parentCommentAuthorId)) {
+            save(
+                    parentCommentAuthorId,
+                    actorUserId,
+                    NotificationType.COMMENT_REPLY,
+                    postId,
+                    commentId,
+                    parentCommentId,
+                    createdAt
+            );
+        }
+
+        if (postOwnerId != null
+                && !shouldSkip(actorUserId, postOwnerId)
+                && notified.add(postOwnerId)) {
+            save(
+                    postOwnerId,
+                    actorUserId,
+                    NotificationType.COMMENT,
+                    postId,
+                    commentId,
+                    parentCommentId,
+                    createdAt
+            );
+        }
     }
 
     public void deleteCommentNotification(String commentId) {
         if (commentId == null || commentId.isBlank()) {
             return;
         }
-        notificationRepository.deleteByTypeAndCommentId(NotificationType.COMMENT, commentId);
+        notificationRepository.deleteByCommentId(commentId);
     }
 
     private boolean shouldSkip(String actorUserId, String recipientUserId) {
@@ -135,6 +181,7 @@ public class NotificationService {
             NotificationType type,
             String postId,
             String commentId,
+            String parentCommentId,
             Instant createdAt
     ) {
         Notification notification = Notification.builder()
@@ -143,6 +190,7 @@ public class NotificationService {
                 .type(type)
                 .postId(postId)
                 .commentId(commentId)
+                .parentCommentId(parentCommentId)
                 .read(false)
                 .createdAt(createdAt != null ? createdAt : Instant.now())
                 .build();

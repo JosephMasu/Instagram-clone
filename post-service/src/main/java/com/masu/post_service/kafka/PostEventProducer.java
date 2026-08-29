@@ -51,7 +51,12 @@ public class PostEventProducer {
         );
     }
 
-    public void publishCommentCreated(Comment comment, String postOwnerId) {
+    public void publishCommentCreated(
+            Comment comment,
+            String postOwnerId,
+            String parentCommentAuthorId,
+            java.util.List<String> mentionedUserIds
+    ) {
         kafkaTemplate.send(
                 COMMENT_CREATED_TOPIC,
                 comment.getPostId(),
@@ -60,6 +65,9 @@ public class PostEventProducer {
                         comment.getPostId(),
                         comment.getUserId(),
                         postOwnerId,
+                        comment.getParentCommentId(),
+                        parentCommentAuthorId,
+                        mentionedUserIds,
                         comment.getCreatedAt()
                 )
         );

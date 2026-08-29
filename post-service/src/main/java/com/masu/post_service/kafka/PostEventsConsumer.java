@@ -39,12 +39,13 @@ public class PostEventsConsumer {
     @KafkaListener(topics = "comment.created", groupId = "post-service")
     public void consumeCommentCreated(CommentCreatedEvent event) {
         log.info(
-                "comment.created received: commentId={}, postId={}, userId={}, postOwnerId={}, createdAt={}",
+                "comment.created received: commentId={}, postId={}, userId={}, postOwnerId={}, parentCommentId={}, mentioned={}",
                 event.commentId(),
                 event.postId(),
                 event.userId(),
                 event.postOwnerId(),
-                event.createdAt()
+                event.parentCommentId(),
+                event.mentionedUserIds()
         );
     }
 

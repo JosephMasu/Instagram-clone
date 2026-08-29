@@ -42,5 +42,5 @@ public interface NotificationRepository
             String postId
     );
 
-    void deleteByTypeAndCommentId(NotificationType type, String commentId);
+    void deleteByCommentId(String commentId);
 }

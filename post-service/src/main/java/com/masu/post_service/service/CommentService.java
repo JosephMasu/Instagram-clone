@@ -1,5 +1,7 @@
 package com.masu.post_service.service;
 
+import com.masu.post_service.client.UserDirectoryClient;
+import com.masu.post_service.comment.MentionParser;
 import com.masu.post_service.dto.CommentResponse;
 import com.masu.post_service.dto.CreateCommentRequest;
 import com.masu.post_service.exception.PostNotFoundException;
@@ -13,7 +15,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +29,7 @@ public class CommentService {
     private final PostRepository postRepository;
     private final PostService postService;
     private final PostEventProducer postEventProducer;
+    private final UserDirectoryClient userDirectoryClient;
 
     public CommentResponse createComment(
             String postId,
@@ -35,12 +41,24 @@ public class CommentService {
                 .orElseThrow(() -> new PostNotFoundException("Post not found"));
 
         String userId = authentication.getName();
+        String parentCommentAuthorId = null;
+        String parentCommentId = blankToNull(request.parentCommentId());
+
+        if (parentCommentId != null) {
+            Comment parent = commentRepository.findById(parentCommentId)
+                    .orElseThrow(() -> new IllegalArgumentException("Parent comment not found"));
+            if (!postId.equals(parent.getPostId())) {
+                throw new IllegalArgumentException("Parent comment does not belong to this post");
+            }
+            parentCommentAuthorId = parent.getUserId();
+        }
 
         Instant now = Instant.now();
 
         Comment comment = Comment.builder()
                 .postId(postId)
                 .userId(userId)
+                .parentCommentId(parentCommentId)
                 .text(request.text())
                 .createdAt(now)
                 .updatedAt(now)
@@ -49,7 +67,12 @@ public class CommentService {
         Comment savedComment = commentRepository.save(comment);
         postService.refreshEngagementCounts(postId);
         try {
-            postEventProducer.publishCommentCreated(savedComment, post.getUserId());
+            postEventProducer.publishCommentCreated(
+                    savedComment,
+                    post.getUserId(),
+                    parentCommentAuthorId,
+                    resolveMentionedUserIds(request.text(), userId)
+            );
         } catch (Exception exception) {
             log.error(
                     "Failed to publish comment.created commentId={} postId={}",
@@ -59,15 +82,14 @@ public class CommentService {
             );
         }
 
-        return toResponse(savedComment);
+        return CommentResponse.from(savedComment);
     }
 
     public List<CommentResponse> getComments(String postId) {
-
         return commentRepository
                 .findByPostIdOrderByCreatedAtAsc(postId)
                 .stream()
-                .map(this::toResponse)
+                .map(CommentResponse::from)
                 .toList();
     }
 
@@ -107,15 +129,20 @@ public class CommentService {
         }
     }
 
-    private CommentResponse toResponse(Comment comment) {
+    private List<String> resolveMentionedUserIds(String text, String actorUserId) {
+        Set<String> mentioned = new LinkedHashSet<>();
+        for (String username : MentionParser.usernames(text)) {
+            userDirectoryClient.findAuthUserIdByUsername(username)
+                    .filter(authUserId -> !authUserId.equals(actorUserId))
+                    .ifPresent(mentioned::add);
+        }
+        return new ArrayList<>(mentioned);
+    }
 
-        return new CommentResponse(
-                comment.getId(),
-                comment.getPostId(),
-                comment.getUserId(),
-                comment.getText(),
-                comment.getCreatedAt(),
-                comment.getUpdatedAt()
-        );
+    private String blankToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value;
     }
 }

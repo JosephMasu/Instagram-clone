@@ -29,6 +29,8 @@ public class Notification {
 
     private String commentId;
 
+    private String parentCommentId;
+
     private boolean read;
 
     private Instant createdAt;

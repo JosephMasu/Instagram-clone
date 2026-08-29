@@ -15,3 +15,6 @@ spring:
 
 jwt:
   secret: test-secret-that-is-long-enough-for-hmac-sha-256
+
+user-service:
+  url: http://localhost:8082

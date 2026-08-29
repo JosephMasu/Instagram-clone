@@ -85,11 +85,14 @@ public class NotificationEventsConsumer {
                 event.userId(),
                 event.postOwnerId()
         );
-        notificationService.createCommentNotification(
+        notificationService.createCommentNotifications(
                 event.userId(),
                 event.postOwnerId(),
+                event.parentCommentAuthorId(),
+                event.mentionedUserIds(),
                 event.postId(),
                 event.commentId(),
+                event.parentCommentId(),
                 event.createdAt()
         );
     }

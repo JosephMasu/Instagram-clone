@@ -12,6 +12,7 @@ public record NotificationResponse(
         NotificationType type,
         String postId,
         String commentId,
+        String parentCommentId,
         boolean read,
         Instant createdAt
 ) {
@@ -24,6 +25,7 @@ public record NotificationResponse(
                 notification.getType(),
                 notification.getPostId(),
                 notification.getCommentId(),
+                notification.getParentCommentId(),
                 notification.isRead(),
                 notification.getCreatedAt()
         );
