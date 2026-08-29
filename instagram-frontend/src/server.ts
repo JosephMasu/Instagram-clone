@@ -5,28 +5,61 @@ import {
   writeResponseToNodeResponse,
 } from '@angular/ssr/node';
 import express from 'express';
+import http from 'node:http';
 import { join } from 'node:path';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
+const gatewayUrl = process.env['API_GATEWAY_URL'] ?? 'http://127.0.0.1:8080';
 
 const app = express();
 const angularApp = new AngularNodeAppEngine();
 
-/**
- * Example Express Rest API endpoints can be defined here.
- * Uncomment and define endpoints as necessary.
- *
- * Example:
- * ```ts
- * app.get('/api/{*splat}', (req, res) => {
- *   // Handle API request
- * });
- * ```
- */
+app.use('/api', (req, res) => {
+  const target = new URL(req.originalUrl, gatewayUrl);
+  const headers: http.OutgoingHttpHeaders = { host: target.host };
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (value === undefined) {
+      continue;
+    }
+    const lower = key.toLowerCase();
+    if (
+      lower === 'connection' ||
+      lower === 'keep-alive' ||
+      lower === 'transfer-encoding' ||
+      lower === 'upgrade' ||
+      lower === 'host'
+    ) {
+      continue;
+    }
+    headers[key] = value;
+  }
 
-/**
- * Serve static files from /browser
- */
+  const proxyReq = http.request(
+    target,
+    {
+      method: req.method,
+      headers,
+    },
+    (proxyRes) => {
+      res.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers);
+      proxyRes.pipe(res);
+    },
+  );
+
+  proxyReq.on('error', () => {
+    if (!res.headersSent) {
+      res.status(502).json({
+        status: 502,
+        error: 'Bad Gateway',
+        message:
+          'Cannot reach the API gateway. Start the backend and keep it on port 8080.',
+      });
+    }
+  });
+
+  req.pipe(proxyReq);
+});
+
 app.use(
   express.static(browserDistFolder, {
     maxAge: '1y',
@@ -35,9 +68,6 @@ app.use(
   }),
 );
 
-/**
- * Handle all other requests by rendering the Angular application.
- */
 app.use((req, res, next) => {
   angularApp
     .handle(req)
@@ -47,10 +77,6 @@ app.use((req, res, next) => {
     .catch(next);
 });
 
-/**
- * Start the server if this module is the main entry point, or it is ran via PM2.
- * The server listens on the port defined by the `PORT` environment variable, or defaults to 4000.
- */
 if (isMainModule(import.meta.url) || process.env['pm_id']) {
   const port = process.env['PORT'] || 4000;
   app.listen(port, (error) => {
@@ -62,7 +88,4 @@ if (isMainModule(import.meta.url) || process.env['pm_id']) {
   });
 }
 
-/**
- * Request handler used by the Angular CLI (for dev-server and during build) or Firebase Cloud Functions.
- */
 export const reqHandler = createNodeRequestHandler(app);

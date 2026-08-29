@@ -5,6 +5,9 @@ spring:
   application:
     name: api-gateway
 
+  codec:
+    max-in-memory-size: 16MB
+
   cloud:
     gateway:
       server:
@@ -34,6 +37,11 @@ spring:
               uri: ${POST_SERVICE_URL:http://localhost:8083}
               predicates:
                 - Path=/api/v1/posts/**
+
+            - id: comment-service
+              uri: ${POST_SERVICE_URL:http://localhost:8083}
+              predicates:
+                - Path=/api/v1/comments/**
 
             # Notification Service
             - id: notification-service

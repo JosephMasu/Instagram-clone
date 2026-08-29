@@ -35,7 +35,7 @@ public class PostService {
 
         Post post = Post.builder()
                 .userId(userId)
-                .caption(request.caption())
+                .caption(request.caption() == null ? "" : request.caption())
                 .mediaUrl(request.mediaUrl())
                 .mediaType(request.mediaType())
                 .likeCount(0)

@@ -7,7 +7,6 @@ import jakarta.validation.constraints.Size;
 
 public record CreatePostRequest(
 
-        @NotBlank
         @Size(max = 2200)
         String caption,
 

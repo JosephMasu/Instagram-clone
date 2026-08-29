@@ -1,6 +1,7 @@
 package com.masu.post_service.service;
 
 import com.masu.post_service.client.UserDirectoryClient;
+import com.masu.post_service.client.UserProfileLookup;
 import com.masu.post_service.comment.MentionParser;
 import com.masu.post_service.dto.CommentResponse;
 import com.masu.post_service.dto.CreateCommentRequest;
@@ -16,8 +17,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -82,15 +85,32 @@ public class CommentService {
             );
         }
 
-        return CommentResponse.from(savedComment);
+        return toResponse(savedComment, userId);
     }
 
     public List<CommentResponse> getComments(String postId) {
+        Map<String, UserProfileLookup> cache = new HashMap<>();
         return commentRepository
                 .findByPostIdOrderByCreatedAtAsc(postId)
                 .stream()
-                .map(CommentResponse::from)
+                .map(comment -> toResponse(comment, comment.getUserId(), cache))
                 .toList();
+    }
+
+    private CommentResponse toResponse(Comment comment, String userId) {
+        return toResponse(comment, userId, new HashMap<>());
+    }
+
+    private CommentResponse toResponse(
+            Comment comment,
+            String userId,
+            Map<String, UserProfileLookup> cache
+    ) {
+        var profile = cache.computeIfAbsent(
+                userId,
+                id -> userDirectoryClient.findByUserId(id).orElse(null)
+        );
+        return CommentResponse.from(comment, profile);
     }
 
     public void deleteComment(
@@ -100,13 +120,17 @@ public class CommentService {
 
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() ->
-                        new RuntimeException("Comment not found")
+                        new IllegalArgumentException("Comment not found")
                 );
 
         String userId = authentication.getName();
+        boolean commentAuthor = comment.getUserId().equals(userId);
+        boolean postAuthor = postRepository.findById(comment.getPostId())
+                .map(post -> userId.equals(post.getUserId()))
+                .orElse(false);
 
-        if (!comment.getUserId().equals(userId)) {
-            throw new RuntimeException(
+        if (!commentAuthor && !postAuthor) {
+            throw new org.springframework.security.access.AccessDeniedException(
                     "You are not allowed to delete this comment"
             );
         }
@@ -115,6 +139,7 @@ public class CommentService {
                 .map(post -> post.getUserId())
                 .orElse(null);
 
+        commentRepository.deleteByParentCommentId(commentId);
         commentRepository.delete(comment);
         postService.refreshEngagementCounts(comment.getPostId());
         try {

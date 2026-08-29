@@ -1,0 +1,94 @@
+<div class="min-h-screen bg-white md:pl-[72px] xl:pl-[244px]">
+  <aside
+    class="fixed inset-y-0 left-0 z-20 hidden border-r border-zinc-200 bg-white md:flex md:w-[72px] md:flex-col xl:w-[244px]"
+  >
+    <a routerLink="/" class="font-logo hidden px-6 pt-8 text-[28px] xl:block">Instagram</a>
+    <a routerLink="/" class="px-5 pt-8 xl:hidden" aria-label="Instagram">
+      <svg class="h-7 w-7" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm5 5.2A4.8 4.8 0 1 0 16.8 12 4.8 4.8 0 0 0 12 7.2zm0 1.8A3 3 0 1 1 9 12a3 3 0 0 1 3-3zm6.1-.9a1.1 1.1 0 1 0 1.1 1.1 1.1 1.1 0 0 0-1.1-1.1z" />
+      </svg>
+    </a>
+    <nav class="mt-8 flex flex-1 flex-col gap-1 px-3 text-[16px]">
+      <a
+        routerLink="/"
+        routerLinkActive="font-bold"
+        [routerLinkActiveOptions]="{ exact: true }"
+        class="flex items-center gap-4 rounded-lg px-3 py-3 hover:bg-zinc-50"
+      >
+        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M9.005 16.545a2.997 2.997 0 0 1 2.997-2.997A2.997 2.997 0 0 1 15 16.545V22h7V11.543L12 2 2 11.543V22h7.005z" />
+        </svg>
+        <span class="hidden xl:inline">Home</span>
+      </a>
+      <a
+        routerLink="/create"
+        routerLinkActive="font-bold"
+        class="flex items-center gap-4 rounded-lg px-3 py-3 hover:bg-zinc-50"
+      >
+        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="3" y="3" width="18" height="18" rx="5" />
+          <path d="M12 8v8M8 12h8" />
+        </svg>
+        <span class="hidden xl:inline">Create</span>
+      </a>
+      <a
+        routerLink="/notifications"
+        routerLinkActive="font-bold"
+        class="flex items-center gap-4 rounded-lg px-3 py-3 hover:bg-zinc-50"
+      >
+        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M12 21s-7-4.35-9.33-8.5C.5 9.2 2.2 5 6.2 5c2.1 0 3.5 1.2 4.3 2.3C11.3 6.2 12.7 5 14.8 5c4 0 5.7 4.2 3.53 7.5C19 16.65 12 21 12 21z" />
+        </svg>
+        <span class="hidden xl:inline">Notifications</span>
+      </a>
+      <a
+        routerLink="/profile/me"
+        routerLinkActive="font-bold"
+        class="flex items-center gap-4 rounded-lg px-3 py-3 hover:bg-zinc-50"
+      >
+        <span class="rounded-full">
+          <app-avatar size="xs" [src]="me.profile()?.profilePictureUrl" [name]="me.profile()?.username ?? 'you'" />
+        </span>
+        <span class="hidden xl:inline">Profile</span>
+      </a>
+    </nav>
+    <button
+      type="button"
+      class="m-3 flex items-center gap-4 rounded-lg px-3 py-3 text-left hover:bg-zinc-50"
+      (click)="logout()"
+    >
+      <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <circle cx="12" cy="12" r="1" />
+        <circle cx="6" cy="12" r="1" />
+        <circle cx="18" cy="12" r="1" />
+      </svg>
+      <span class="hidden xl:inline">Log out</span>
+    </button>
+  </aside>
+
+  <main class="mx-auto min-h-screen w-full max-w-[935px] pb-16 md:pb-8">
+    <router-outlet />
+  </main>
+
+  <nav class="fixed inset-x-0 bottom-0 z-20 flex h-12 items-center border-t border-zinc-200 bg-white md:hidden">
+    <a routerLink="/" class="flex flex-1 items-center justify-center" [routerLinkActiveOptions]="{ exact: true }" routerLinkActive="text-black">
+      <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M9.005 16.545a2.997 2.997 0 0 1 2.997-2.997A2.997 2.997 0 0 1 15 16.545V22h7V11.543L12 2 2 11.543V22h7.005z" />
+      </svg>
+    </a>
+    <a routerLink="/create" class="flex flex-1 items-center justify-center" routerLinkActive="font-bold">
+      <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <rect x="3" y="3" width="18" height="18" rx="5" />
+        <path d="M12 8v8M8 12h8" />
+      </svg>
+    </a>
+    <a routerLink="/notifications" class="flex flex-1 items-center justify-center">
+      <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+        <path d="M12 21s-7-4.35-9.33-8.5C.5 9.2 2.2 5 6.2 5c2.1 0 3.5 1.2 4.3 2.3C11.3 6.2 12.7 5 14.8 5c4 0 5.7 4.2 3.53 7.5C19 16.65 12 21 12 21z" />
+      </svg>
+    </a>
+    <a routerLink="/profile/me" class="flex flex-1 items-center justify-center">
+      <app-avatar size="xs" [src]="me.profile()?.profilePictureUrl" [name]="me.profile()?.username ?? 'you'" />
+    </a>
+  </nav>
+</div>
