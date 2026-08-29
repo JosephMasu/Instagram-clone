@@ -42,5 +42,11 @@ public interface NotificationRepository
             String postId
     );
 
+    boolean existsByTypeAndActorUserIdAndCommentId(
+            NotificationType type,
+            String actorUserId,
+            String commentId
+    );
+
     void deleteByCommentId(String commentId);
 }

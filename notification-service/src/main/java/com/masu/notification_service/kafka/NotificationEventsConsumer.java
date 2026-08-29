@@ -23,89 +23,113 @@ public class NotificationEventsConsumer {
 
     @KafkaListener(topics = "user.followed", groupId = "notification-service")
     public void consumeUserFollowed(UserFollowedEvent event) {
-        log.info(
-                "user.followed received: followerId={}, followingId={}",
-                event.followerId(),
-                event.followingId()
-        );
-        notificationService.createFollowNotification(
-                event.followerId(),
-                event.followingId(),
-                parseInstant(event.createdAt())
-        );
+        try {
+            log.info(
+                    "user.followed received: followerId={}, followingId={}",
+                    event.followerId(),
+                    event.followingId()
+            );
+            notificationService.createFollowNotification(
+                    event.followerId(),
+                    event.followingId(),
+                    parseInstant(event.createdAt())
+            );
+        } catch (Exception exception) {
+            log.error("Failed to handle user.followed", exception);
+        }
     }
 
     @KafkaListener(topics = "user.unfollowed", groupId = "notification-service")
     public void consumeUserUnfollowed(UserUnfollowedEvent event) {
-        log.info(
-                "user.unfollowed received: followerId={}, followingId={}",
-                event.followerId(),
-                event.followingId()
-        );
-        notificationService.deleteFollowNotification(
-                event.followerId(),
-                event.followingId()
-        );
+        try {
+            log.info(
+                    "user.unfollowed received: followerId={}, followingId={}",
+                    event.followerId(),
+                    event.followingId()
+            );
+            notificationService.deleteFollowNotification(
+                    event.followerId(),
+                    event.followingId()
+            );
+        } catch (Exception exception) {
+            log.error("Failed to handle user.unfollowed", exception);
+        }
     }
 
     @KafkaListener(topics = "like.created", groupId = "notification-service")
     public void consumeLikeCreated(LikeCreatedEvent event) {
-        log.info(
-                "like.created received: likeId={}, postId={}, userId={}, postOwnerId={}",
-                event.likeId(),
-                event.postId(),
-                event.userId(),
-                event.postOwnerId()
-        );
-        notificationService.createLikeNotification(
-                event.userId(),
-                event.postOwnerId(),
-                event.postId(),
-                event.createdAt()
-        );
+        try {
+            log.info(
+                    "like.created received: likeId={}, postId={}, userId={}, postOwnerId={}",
+                    event.likeId(),
+                    event.postId(),
+                    event.userId(),
+                    event.postOwnerId()
+            );
+            notificationService.createLikeNotification(
+                    event.userId(),
+                    event.postOwnerId(),
+                    event.postId(),
+                    event.createdAt()
+            );
+        } catch (Exception exception) {
+            log.error("Failed to handle like.created", exception);
+        }
     }
 
     @KafkaListener(topics = "like.deleted", groupId = "notification-service")
     public void consumeLikeDeleted(LikeDeletedEvent event) {
-        log.info(
-                "like.deleted received: likeId={}, postId={}, userId={}",
-                event.likeId(),
-                event.postId(),
-                event.userId()
-        );
-        notificationService.deleteLikeNotification(event.userId(), event.postId());
+        try {
+            log.info(
+                    "like.deleted received: likeId={}, postId={}, userId={}",
+                    event.likeId(),
+                    event.postId(),
+                    event.userId()
+            );
+            notificationService.deleteLikeNotification(event.userId(), event.postId());
+        } catch (Exception exception) {
+            log.error("Failed to handle like.deleted", exception);
+        }
     }
 
     @KafkaListener(topics = "comment.created", groupId = "notification-service")
     public void consumeCommentCreated(CommentCreatedEvent event) {
-        log.info(
-                "comment.created received: commentId={}, postId={}, userId={}, postOwnerId={}",
-                event.commentId(),
-                event.postId(),
-                event.userId(),
-                event.postOwnerId()
-        );
-        notificationService.createCommentNotifications(
-                event.userId(),
-                event.postOwnerId(),
-                event.parentCommentAuthorId(),
-                event.mentionedUserIds(),
-                event.postId(),
-                event.commentId(),
-                event.parentCommentId(),
-                event.createdAt()
-        );
+        try {
+            log.info(
+                    "comment.created received: commentId={}, postId={}, userId={}, postOwnerId={}",
+                    event.commentId(),
+                    event.postId(),
+                    event.userId(),
+                    event.postOwnerId()
+            );
+            notificationService.createCommentNotifications(
+                    event.userId(),
+                    event.postOwnerId(),
+                    event.parentCommentAuthorId(),
+                    event.mentionedUserIds(),
+                    event.postId(),
+                    event.commentId(),
+                    event.parentCommentId(),
+                    event.createdAt()
+            );
+        } catch (Exception exception) {
+            log.error("Failed to handle comment.created", exception);
+        }
     }
 
     @KafkaListener(topics = "comment.deleted", groupId = "notification-service")
     public void consumeCommentDeleted(CommentDeletedEvent event) {
-        log.info(
-                "comment.deleted received: commentId={}, postId={}, userId={}",
-                event.commentId(),
-                event.postId(),
-                event.userId()
-        );
-        notificationService.deleteCommentNotification(event.commentId());
+        try {
+            log.info(
+                    "comment.deleted received: commentId={}, postId={}, userId={}",
+                    event.commentId(),
+                    event.postId(),
+                    event.userId()
+            );
+            notificationService.deleteCommentNotification(event.commentId());
+        } catch (Exception exception) {
+            log.error("Failed to handle comment.deleted", exception);
+        }
     }
 
     private Instant parseInstant(String value) {

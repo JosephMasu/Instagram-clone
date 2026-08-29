@@ -1,11 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { afterNextRender, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
-import { NotificationApi } from '../../services/notification-api';
-import { UserLookup } from '../../services/user-lookup';
+import { NotificationStore } from '../../core/notification.store';
 import { AppNotification } from '../../shared/models/notification/model';
-import { UserProfile } from '../../shared/models/user/model';
 import { Avatar } from '../../shared/avatar';
 import { TimeAgoPipe } from '../../shared/time-ago.pipe';
 
@@ -14,54 +10,23 @@ import { TimeAgoPipe } from '../../shared/time-ago.pipe';
   imports: [RouterLink, Avatar, TimeAgoPipe],
   templateUrl: './notifications.html',
 })
-export class NotificationsPage implements OnInit {
-  private readonly api = inject(NotificationApi);
-  private readonly lookup = inject(UserLookup);
+export class NotificationsPage {
+  readonly store = inject(NotificationStore);
 
-  readonly items = signal<AppNotification[]>([]);
-  readonly actors = signal<Record<string, UserProfile>>({});
-  readonly error = signal('');
-  readonly loading = signal(true);
-
-  ngOnInit(): void {
-    this.reload();
-  }
-
-  reload(): void {
-    this.loading.set(true);
-    this.error.set('');
-    this.api
-      .list()
-      .pipe(catchError(() => of([] as AppNotification[])))
-      .subscribe((items) => {
-        this.items.set(items);
-        this.loading.set(false);
-        const ids = [...new Set(items.map((i) => i.actorUserId))];
-        if (!ids.length) {
-          return;
-        }
-        this.lookup.byIds(ids).subscribe((actors) => this.actors.set(actors));
-      });
-  }
-
-  actor(id: string): UserProfile | undefined {
-    return this.actors()[id];
+  constructor() {
+    afterNextRender(() => this.store.refresh());
   }
 
   markRead(item: AppNotification): void {
-    if (item.read) {
-      return;
-    }
-    this.api.markRead(item.id).subscribe({
-      next: (updated) =>
-        this.items.update((list) => list.map((n) => (n.id === updated.id ? updated : n))),
-    });
+    this.store.markRead(item);
   }
 
   markAll(): void {
-    this.api.markAllRead().subscribe({
-      next: () => this.reload(),
-    });
+    this.store.markAllRead();
+  }
+
+  actor(id: string) {
+    return this.store.actor(id);
   }
 
   label(item: AppNotification): string {

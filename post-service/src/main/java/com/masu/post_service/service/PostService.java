@@ -1,5 +1,6 @@
 package com.masu.post_service.service;
 
+import com.masu.post_service.client.NotificationClient;
 import com.masu.post_service.dto.CreatePostRequest;
 import com.masu.post_service.dto.PostResponse;
 import com.masu.post_service.exception.PostNotFoundException;
@@ -25,6 +26,7 @@ public class PostService {
     private final LikeRepository likeRepository;
     private final CommentRepository commentRepository;
     private final PostEventProducer postEventProducer;
+    private final NotificationClient notificationClient;
 
     public PostResponse createPost(
             String userId,
@@ -96,6 +98,7 @@ public class PostService {
         refreshEngagementCounts(postId);
         try {
             postEventProducer.publishLikeCreated(savedLike, post.getUserId());
+            notificationClient.notifyLike(post.getUserId(), postId);
         } catch (Exception exception) {
             log.error(
                     "Failed to publish like.created likeId={} postId={}",

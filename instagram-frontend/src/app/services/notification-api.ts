@@ -21,6 +21,6 @@ export class NotificationApi {
   }
 
   markAllRead() {
-    return this.http.post<void>(`${BASE}/read-all`, {});
+    return this.http.post(`${BASE}/read-all`, {}, { responseType: 'text' });
   }
 }

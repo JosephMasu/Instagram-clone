@@ -1,5 +1,6 @@
 package com.masu.post_service.service;
 
+import com.masu.post_service.client.NotificationClient;
 import com.masu.post_service.client.UserDirectoryClient;
 import com.masu.post_service.client.UserProfileLookup;
 import com.masu.post_service.comment.MentionParser;
@@ -33,6 +34,7 @@ public class CommentService {
     private final PostService postService;
     private final PostEventProducer postEventProducer;
     private final UserDirectoryClient userDirectoryClient;
+    private final NotificationClient notificationClient;
 
     public CommentResponse createComment(
             String postId,
@@ -69,12 +71,13 @@ public class CommentService {
 
         Comment savedComment = commentRepository.save(comment);
         postService.refreshEngagementCounts(postId);
+        List<String> mentionedUserIds = resolveMentionedUserIds(request.text(), userId);
         try {
             postEventProducer.publishCommentCreated(
                     savedComment,
                     post.getUserId(),
                     parentCommentAuthorId,
-                    resolveMentionedUserIds(request.text(), userId)
+                    mentionedUserIds
             );
         } catch (Exception exception) {
             log.error(
@@ -84,6 +87,14 @@ public class CommentService {
                     exception
             );
         }
+        notificationClient.notifyComment(
+                post.getUserId(),
+                postId,
+                savedComment.getId(),
+                parentCommentId,
+                parentCommentAuthorId,
+                mentionedUserIds
+        );
 
         return toResponse(savedComment, userId);
     }

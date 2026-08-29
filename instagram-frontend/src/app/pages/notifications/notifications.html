@@ -3,10 +3,15 @@
     <h1 class="text-xl font-semibold">Notifications</h1>
     <button class="text-sm font-semibold text-[#0095F6]" type="button" (click)="markAll()">Mark all as read</button>
   </div>
-  @if (error()) {
-    <p class="px-6 py-4 text-sm text-red-600">{{ error() }}</p>
+  @if (store.error()) {
+    <div class="px-6 py-4 text-center">
+      <p class="text-sm text-red-600">{{ store.error() }}</p>
+      <button class="mt-2 text-sm font-semibold text-[#0095F6]" type="button" (click)="store.refresh()">
+        Try again
+      </button>
+    </div>
   }
-  @if (loading()) {
+  @if (store.loading()) {
     @for (_ of [1, 2, 3, 4, 5, 6]; track $index) {
       <div class="flex items-center gap-3 px-6 py-3">
         <div class="ig-skeleton h-11 w-11 rounded-full"></div>
@@ -17,7 +22,7 @@
       </div>
     }
   }
-  @for (item of items(); track item.id) {
+  @for (item of store.items(); track item.id) {
     <div
       class="flex w-full items-center gap-3 px-6 py-3 hover:bg-zinc-50"
       [class.bg-sky-50]="!item.read"
@@ -35,7 +40,7 @@
       }
     </div>
   }
-  @if (!loading() && !error() && items().length === 0) {
+  @if (!store.loading() && !store.error() && store.items().length === 0) {
     <div class="px-6 py-20 text-center">
       <h2 class="text-2xl font-semibold">Activity On Your Posts</h2>
       <p class="mt-2 text-sm text-zinc-500">When someone likes or comments on one of your posts, you'll see it here.</p>
