@@ -1,7 +1,0 @@
-com/masu/events/LikeCreatedEvent.class
-com/masu/events/CommentDeletedEvent.class
-com/masu/events/LikeDeletedEvent.class
-com/masu/events/UserFollowedEvent.class
-com/masu/events/UserCreatedEvent.class
-com/masu/events/UserUnfollowedEvent.class
-com/masu/events/CommentCreatedEvent.class
