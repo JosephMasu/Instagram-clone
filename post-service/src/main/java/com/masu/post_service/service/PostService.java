@@ -5,6 +5,7 @@ import com.masu.post_service.dto.PostResponse;
 import com.masu.post_service.exception.PostNotFoundException;
 import com.masu.post_service.model.Like;
 import com.masu.post_service.model.Post;
+import com.masu.post_service.repository.CommentRepository;
 import com.masu.post_service.repository.LikeRepository;
 import com.masu.post_service.repository.PostRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class PostService {
 
     private final PostRepository postRepository;
     private final LikeRepository likeRepository;
+    private final CommentRepository commentRepository;
 
     public PostResponse createPost(
             String userId,
@@ -32,12 +34,14 @@ public class PostService {
                 .caption(request.caption())
                 .mediaUrl(request.mediaUrl())
                 .mediaType(request.mediaType())
+                .likeCount(0)
+                .commentCount(0)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
 
         Post savedPost = postRepository.save(post);
-        return PostResponse.from(savedPost, 0, false);
+        return toResponse(savedPost, userId);
 
     }
 
@@ -45,63 +49,20 @@ public class PostService {
         return postRepository
                 .findAllByOrderByCreatedAtDesc()
                 .stream()
-                .map(post -> {
-
-                    long likeCount =
-                            likeRepository.countByPostId(
-                                    post.getId()
-                            );
-
-                    boolean isLiked =
-                            likeRepository.existsByUserIdAndPostId(
-                                    currentUserId,
-                                    post.getId()
-                            );
-
-                    return PostResponse.from(
-                            post,
-                            likeCount,
-                            isLiked
-                    );
-                })
+                .map(post -> toResponse(post, currentUserId))
                 .toList();
     }
 
     public PostResponse getPost(String postId, String currentUserId) {
-        Post post = postRepository
-                .findById(postId)
-                .orElseThrow(() ->
-                        new PostNotFoundException("Post not found")
-                );
-
-        long likeCount =
-                likeRepository.countByPostId(postId);
-
-        boolean isLiked =
-                likeRepository.existsByUserIdAndPostId(
-                        currentUserId,
-                        postId
-                );
-
-        return PostResponse.from(
-                post,
-                likeCount,
-                isLiked
-        );
+        Post post = requirePost(postId);
+        return toResponse(post, currentUserId);
     }
 
     public List<PostResponse> getPostsByUser(String userId, String currentUserId) {
         return postRepository
                 .findByUserIdOrderByCreatedAtDesc(userId)
                 .stream()
-                .map(post -> PostResponse.from(
-                        post,
-                        likeRepository.countByPostId(post.getId()),
-                        likeRepository.existsByUserIdAndPostId(
-                                currentUserId,
-                                post.getId()
-                        )
-                ))
+                .map(post -> toResponse(post, currentUserId))
                 .toList();
     }
 
@@ -112,9 +73,7 @@ public class PostService {
 
         // First make sure the post actually exists.
         // Otherwise we could create a Like pointing to nothing.
-        if (!postRepository.existsById(postId)) {
-            throw new PostNotFoundException("Post not found");
-        }
+        requirePost(postId);
 
         if (likeRepository.existsByUserIdAndPostId(
                 userId,
@@ -129,8 +88,8 @@ public class PostService {
                 .createdAt(Instant.now())
                 .build();
 
-        // Store the like in the "likes" collection.
         likeRepository.save(like);
+        refreshEngagementCounts(postId);
     }
 
     public void unlikePost(
@@ -142,9 +101,7 @@ public class PostService {
         //
         // This is important: we don't simply delete by postId,
         // because many different users can like the same post.
-        if (!postRepository.existsById(postId)) {
-            throw new PostNotFoundException("Post not found");
-        }
+        requirePost(postId);
 
         Like like = likeRepository
                 .findByUserIdAndPostId(
@@ -155,7 +112,47 @@ public class PostService {
                         new IllegalStateException("Post is not liked")
                 );
 
-        // Delete only this user's like.
         likeRepository.delete(like);
+        refreshEngagementCounts(postId);
+    }
+
+    public void refreshEngagementCounts(String postId) {
+        applyEngagementCounts(requirePost(postId));
+    }
+
+    private Post requirePost(String postId) {
+        return postRepository
+                .findById(postId)
+                .orElseThrow(() ->
+                        new PostNotFoundException("Post not found")
+                );
+    }
+
+    private void applyEngagementCounts(Post post) {
+        long likeCount = likeRepository.countByPostId(post.getId());
+        long commentCount = commentRepository.countByPostId(post.getId());
+
+        if (post.getLikeCount() == likeCount
+                && post.getCommentCount() == commentCount) {
+            return;
+        }
+
+        post.setLikeCount(likeCount);
+        post.setCommentCount(commentCount);
+        postRepository.save(post);
+    }
+
+    private PostResponse toResponse(Post post, String currentUserId) {
+        applyEngagementCounts(post);
+
+        return PostResponse.from(
+                post,
+                post.getLikeCount(),
+                post.getCommentCount(),
+                likeRepository.existsByUserIdAndPostId(
+                        currentUserId,
+                        post.getId()
+                )
+        );
     }
 }

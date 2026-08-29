@@ -13,25 +13,17 @@ import java.time.Instant;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "posts")
-public class Post {
+@Document(collection = "comments")
+public class Comment {
 
     @Id
     private String id;
 
+    private String postId;
+
     private String userId;
 
-    private String caption;
-
-    @Builder.Default
-    private long likeCount = 0;
-
-    @Builder.Default
-    private long commentCount = 0;
-
-    private String mediaUrl;
-
-    private MediaType mediaType;
+    private String text;
 
     private Instant createdAt;
 
