@@ -11,7 +11,4 @@ public class AuthServiceApplication {
 		EnvLoader.load("auth-service");
 		SpringApplication.run(AuthServiceApplication.class, args);
 	}
-
-	public static class RefreshTokenService {
-	}
 }

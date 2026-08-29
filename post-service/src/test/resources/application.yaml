@@ -8,5 +8,10 @@ spring:
   mongodb:
     uri: mongodb://localhost:27017/instagram_posts_test
 
+  kafka:
+    bootstrap-servers: localhost:9092
+    listener:
+      auto-startup: false
+
 jwt:
   secret: test-secret-that-is-long-enough-for-hmac-sha-256

@@ -23,6 +23,12 @@ public class Post {
 
     private String caption;
 
+    @Builder.Default
+    private long likeCount = 0;
+
+    @Builder.Default
+    private long commentCount = 0;
+
     private String mediaUrl;
 
     private MediaType mediaType;

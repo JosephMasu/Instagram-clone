@@ -1,5 +1,6 @@
 package com.masu.user_service.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -24,6 +25,10 @@ public record CreateProfileRequest(
         String profilePictureUrl,
 
         @JsonProperty("isPrivate")
-        boolean isPrivate
+        @JsonAlias("private")
+        Boolean isPrivate
 ) {
+    public boolean isPrivateProfile() {
+        return Boolean.TRUE.equals(isPrivate);
+    }
 }

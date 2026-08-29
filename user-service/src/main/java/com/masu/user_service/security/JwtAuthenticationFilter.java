@@ -5,6 +5,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -13,6 +14,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.List;
 
 @Component
@@ -32,20 +35,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     ) throws ServletException, IOException {
 
         String authorizationHeader = request.getHeader("Authorization");
-
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+        if (authorizationHeader == null || authorizationHeader.isBlank()) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String token = authorizationHeader.substring(7);
+        String header = authorizationHeader.trim();
+        if (!header.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String token = header.substring(7).trim();
+        if (token.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            token = token.substring(7).trim();
+        }
+
+        if (token.isEmpty() || !jwtService.isTokenValid(token)) {
+            unauthorized(response);
+            return;
+        }
 
         try {
-            if (!jwtService.isTokenValid(token)) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-
             String userId = jwtService.extractUserId(token);
 
             UsernamePasswordAuthenticationToken authentication =
@@ -62,8 +73,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (Exception exception) {
             SecurityContextHolder.clearContext();
+            unauthorized(response);
+            return;
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void unauthorized(HttpServletResponse response) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.getWriter().write(
+                """
+                {"status":401,"error":"Unauthorized","message":"Missing or invalid access token","timestamp":"%s"}
+                """.formatted(Instant.now())
+        );
     }
 }

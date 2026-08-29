@@ -1,0 +1,7 @@
+/Users/masu/Instagram-clone/common-events/src/main/java/com/masu/events/CommentCreatedEvent.java
+/Users/masu/Instagram-clone/common-events/src/main/java/com/masu/events/CommentDeletedEvent.java
+/Users/masu/Instagram-clone/common-events/src/main/java/com/masu/events/LikeCreatedEvent.java
+/Users/masu/Instagram-clone/common-events/src/main/java/com/masu/events/LikeDeletedEvent.java
+/Users/masu/Instagram-clone/common-events/src/main/java/com/masu/events/UserCreatedEvent.java
+/Users/masu/Instagram-clone/common-events/src/main/java/com/masu/events/UserFollowedEvent.java
+/Users/masu/Instagram-clone/common-events/src/main/java/com/masu/events/UserUnfollowedEvent.java

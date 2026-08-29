@@ -7,17 +7,23 @@ import com.masu.user_service.exception.UserNotFoundException;
 import com.masu.user_service.model.User;
 import com.masu.user_service.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+
+import com.masu.events.UserCreatedEvent;
+import com.masu.user_service.kafka.UserEventProducer;
 
 import java.time.Instant;
 import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UserService {
 
     private final UserRepository userRepository;
     private final FollowService followService;
+    private final UserEventProducer userEventProducer;
 
     public UserResponse createProfile(
             String authUserId,
@@ -41,12 +47,31 @@ public class UserService {
                 .lastName(request.lastName())
                 .bio(request.bio())
                 .profilePictureUrl(request.profilePictureUrl())
-                .isPrivate(request.isPrivate())
+                .isPrivate(request.isPrivateProfile())
+                .followerCount(0)
+                .followingCount(0)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
 
-        return followService.toResponse(userRepository.save(user), authUserId);
+
+        User savedUser = userRepository.save(user);
+
+        UserCreatedEvent event = new UserCreatedEvent(
+                savedUser.getId(),
+                savedUser.getAuthUserId(),
+                savedUser.getUsername(),
+                savedUser.getFirstName(),
+                savedUser.getLastName()
+        );
+
+        try {
+            userEventProducer.publishUserCreated(event);
+        } catch (Exception exception) {
+            log.error("Failed to publish UserCreatedEvent for user {}", savedUser.getId(), exception);
+        }
+
+        return followService.toResponse(savedUser, authUserId);
     }
 
     public UserResponse getMyProfile(String authUserId) {

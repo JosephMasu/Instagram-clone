@@ -20,14 +20,18 @@ public record PostResponse(
         Instant createdAt,
 
         Instant updatedAt,
-        // Total number of likes on this post.
         long likeCount,
-        // Whether the currently authenticated user liked this post.
+        long commentCount,
         boolean isLiked
 
 ) {
 
-    public static PostResponse from(Post post, long likeCount, boolean isLiked) {
+    public static PostResponse from(
+            Post post,
+            long likeCount,
+            long commentCount,
+            boolean isLiked
+    ) {
 
         return new PostResponse(
                 post.getId(),
@@ -38,6 +42,7 @@ public record PostResponse(
                 post.getCreatedAt(),
                 post.getUpdatedAt(),
                 likeCount,
+                commentCount,
                 isLiked
         );
     }
