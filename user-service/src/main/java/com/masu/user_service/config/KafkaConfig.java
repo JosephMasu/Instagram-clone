@@ -1,6 +1,5 @@
 package com.masu.user_service.config;
 
-import com.masu.events.UserCreatedEvent;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,7 +16,7 @@ import java.util.Map;
 public class KafkaConfig {
 
     @Bean
-    public KafkaTemplate<String, UserCreatedEvent> kafkaTemplate(
+    public KafkaTemplate<String, Object> kafkaTemplate(
             @Value("${spring.kafka.bootstrap-servers}") String bootstrapServers
     ) {
 

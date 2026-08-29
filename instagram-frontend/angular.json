@@ -63,12 +63,16 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          },
           "configurations": {
             "production": {
               "buildTarget": "instagram-frontend:build:production"
             },
             "development": {
-              "buildTarget": "instagram-frontend:build:development"
+              "buildTarget": "instagram-frontend:build:development",
+              "proxyConfig": "proxy.conf.json"
             }
           },
           "defaultConfiguration": "development"

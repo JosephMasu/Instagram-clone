@@ -1,0 +1,201 @@
+@if (error() && !post()) {
+  <div class="px-6 py-24 text-center">
+    <h1 class="text-2xl font-semibold">Sorry, this page isn't available.</h1>
+    <button class="mt-4 text-sm text-[#0095F6]" type="button" (click)="close()">Go back to Instagram.</button>
+  </div>
+}
+
+@if (!error() && !post()) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70" (click)="close()">
+    <article class="flex h-full w-full max-w-[1100px] flex-col bg-white md:h-[90vh] md:max-h-[90vh] md:flex-row md:rounded-sm" (click)="$event.stopPropagation()">
+      <div class="hidden flex-1 bg-zinc-200 md:block">
+        <div class="ig-skeleton h-full w-full"></div>
+      </div>
+      <div class="flex w-full flex-1 flex-col gap-4 p-4 md:w-[400px] md:flex-none">
+        <div class="flex items-center gap-3">
+          <div class="ig-skeleton h-8 w-8 rounded-full"></div>
+          <div class="ig-skeleton h-3 w-28 rounded"></div>
+        </div>
+        @for (_ of [1, 2, 3, 4, 5]; track $index) {
+          <div class="flex gap-3">
+            <div class="ig-skeleton h-8 w-8 shrink-0 rounded-full"></div>
+            <div class="flex-1 space-y-2 pt-1">
+              <div class="ig-skeleton h-3 w-24 rounded"></div>
+              <div class="ig-skeleton h-3 w-full rounded"></div>
+            </div>
+          </div>
+        }
+      </div>
+    </article>
+  </div>
+}
+
+@if (post(); as p) {
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/70" (click)="close()">
+    <button
+      class="absolute right-4 top-4 z-10 text-3xl leading-none text-white"
+      type="button"
+      aria-label="Close"
+      (click)="close()"
+    >
+      ×
+    </button>
+
+    <article
+      class="flex h-full w-full max-w-[1100px] flex-col bg-white md:h-[90vh] md:max-h-[90vh] md:flex-row md:rounded-sm"
+      (click)="$event.stopPropagation()"
+    >
+      <div class="relative hidden flex-1 items-center bg-black md:flex" (dblclick)="onMediaDblClick()">
+        @if (p.mediaType === 'VIDEO') {
+          <video class="max-h-full w-full object-contain" [src]="p.mediaUrl" controls playsinline></video>
+        } @else {
+          <img class="max-h-full w-full select-none object-contain" [src]="p.mediaUrl" [alt]="p.caption" />
+        }
+        @if (likedBurst()) {
+          <span class="ig-heart-burst pointer-events-none absolute left-1/2 top-1/2 text-white">
+            <svg class="h-24 w-24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 21s-7-4.35-9.33-8.5C.5 9.2 2.2 5 6.2 5c2.1 0 3.5 1.2 4.3 2.3C11.3 6.2 12.7 5 14.8 5c4 0 5.7 4.2 3.53 7.5C19 16.65 12 21 12 21z" />
+            </svg>
+          </span>
+        }
+      </div>
+
+      <div class="flex min-h-0 w-full flex-1 flex-col md:w-[400px] md:flex-none md:border-l md:border-zinc-200">
+        <header class="flex items-center gap-3 border-b border-zinc-200 px-4 py-3">
+          <button class="text-xl md:hidden" type="button" aria-label="Back" (click)="close()">‹</button>
+          <a [routerLink]="['/profile', author()?.username ?? 'me']">
+            <app-avatar size="sm" [src]="author()?.profilePictureUrl" [name]="author()?.username ?? 'user'" />
+          </a>
+          <a class="flex-1 text-sm font-semibold" [routerLink]="['/profile', author()?.username ?? 'me']">
+            {{ author()?.username ?? 'user' }}
+          </a>
+          <span class="hidden text-sm font-semibold md:inline">Comments</span>
+        </header>
+
+        <div class="border-b border-zinc-200 md:hidden">
+          @if (p.mediaType === 'VIDEO') {
+            <video class="max-h-52 w-full bg-black object-contain" [src]="p.mediaUrl" controls playsinline></video>
+          } @else {
+            <img class="max-h-52 w-full bg-black object-contain" [src]="p.mediaUrl" [alt]="p.caption" />
+          }
+        </div>
+
+        <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
+          @if (p.caption) {
+            <div class="flex gap-3">
+              <app-avatar size="sm" [src]="author()?.profilePictureUrl" [name]="author()?.username ?? 'user'" />
+              <p class="text-sm">
+                <a class="font-semibold" [routerLink]="['/profile', author()?.username ?? 'me']">{{ author()?.username }}</a>
+                {{ p.caption }}
+                <span class="mt-1 block text-[12px] text-zinc-400">{{ p.createdAt | timeAgo }}</span>
+              </p>
+            </div>
+          }
+          @if (!commentsReady()) {
+            @for (_ of [1, 2, 3, 4]; track $index) {
+              <div class="flex gap-3">
+                <div class="ig-skeleton h-8 w-8 shrink-0 rounded-full"></div>
+                <div class="flex-1 space-y-2 pt-1">
+                  <div class="ig-skeleton h-3 w-24 rounded"></div>
+                  <div class="ig-skeleton h-3 w-4/5 rounded"></div>
+                </div>
+              </div>
+            }
+          }
+          @for (comment of comments(); track comment.id) {
+            <div class="flex gap-3" [class.pl-8]="comment.parentCommentId">
+              <app-avatar
+                size="sm"
+                [src]="commentPhoto(comment)"
+                [name]="commentName(comment)"
+              />
+              <div class="min-w-0 flex-1">
+                <p class="text-sm">
+                  <a class="font-semibold" [routerLink]="['/profile', commentHandle(comment)]">
+                    {{ commentName(comment) }}
+                  </a>
+                  {{ comment.text }}
+                </p>
+                <div class="mt-1 flex items-center gap-3 text-[12px] font-semibold text-zinc-400">
+                  <span>{{ comment.createdAt | timeAgo }}</span>
+                  <button type="button" (click)="replyTo.set(comment); focusComposer()">Reply</button>
+                </div>
+              </div>
+              @if (canDelete(comment)) {
+                <button class="self-start px-1 text-zinc-400" type="button" aria-label="More" (click)="menuFor.set(comment)">
+                  ···
+                </button>
+              }
+            </div>
+          }
+          @if (commentsReady() && comments().length === 0 && !p.caption) {
+            <div class="py-16 text-center">
+              <h2 class="text-2xl font-semibold">No comments yet</h2>
+              <p class="mt-2 text-sm text-zinc-500">Start the conversation.</p>
+            </div>
+          }
+        </div>
+
+        <div class="border-t border-zinc-200 px-4 py-2">
+          <div class="flex items-center gap-4">
+            <button class="flex items-center gap-1.5" type="button" (click)="toggleLike()">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" [attr.fill]="p.isLiked ? '#ed4956' : 'none'" [attr.stroke]="p.isLiked ? '#ed4956' : 'currentColor'" stroke-width="1.8">
+                <path d="M12 21s-7-4.35-9.33-8.5C.5 9.2 2.2 5 6.2 5c2.1 0 3.5 1.2 4.3 2.3C11.3 6.2 12.7 5 14.8 5c4 0 5.7 4.2 3.53 7.5C19 16.65 12 21 12 21z" />
+              </svg>
+              @if (p.likeCount > 0) {
+                <span class="text-sm font-semibold">{{ p.likeCount }}</span>
+              }
+            </button>
+            <button class="flex items-center gap-1.5" type="button" (click)="focusComposer()">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M21 11.5a8.4 8.4 0 0 1-1.2 4.4 8.5 8.5 0 0 1-7.3 4.1 8.4 8.4 0 0 1-4.4-1.2L3 21l2.2-5.1A8.4 8.4 0 0 1 4 11.5 8.5 8.5 0 0 1 8.1 4.2 8.4 8.4 0 0 1 12.5 3h.5A8.5 8.5 0 0 1 21 11.5z" />
+              </svg>
+              @if (p.commentCount > 0) {
+                <span class="text-sm font-semibold">{{ p.commentCount }}</span>
+              }
+            </button>
+          </div>
+          <p class="mt-1 text-[10px] tracking-wide text-zinc-400">{{ p.createdAt | timeAgo }}</p>
+        </div>
+
+        @if (error() && post()) {
+          <p class="px-4 text-xs text-red-500">{{ error() }}</p>
+        }
+
+        <form class="flex items-center gap-2 border-t border-zinc-200 px-4 py-3" [formGroup]="form" (ngSubmit)="addComment()">
+          <app-avatar size="xs" [src]="me.profile()?.profilePictureUrl" [name]="me.profile()?.username ?? 'you'" />
+          @if (replyTo(); as target) {
+            <button class="shrink-0 text-xs text-zinc-400" type="button" (click)="replyTo.set(null)">
+              Replying
+            </button>
+          }
+          <input
+            #commentBox
+            class="flex-1 bg-transparent text-sm outline-none placeholder:text-zinc-400"
+            [placeholder]="replyTo() ? 'Add a reply…' : 'Add a comment…'"
+            formControlName="text"
+          />
+          <button class="text-sm font-semibold text-[#0095F6] disabled:text-sky-200" type="submit" [disabled]="form.invalid">
+            Post
+          </button>
+        </form>
+      </div>
+    </article>
+  </div>
+}
+
+@if (menuFor(); as target) {
+  <div class="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 sm:items-center" (click)="menuFor.set(null)">
+    <div class="w-full max-w-sm overflow-hidden rounded-t-xl bg-white sm:rounded-xl" (click)="$event.stopPropagation()">
+      <button
+        class="w-full border-b border-zinc-200 py-4 text-sm font-bold text-red-500 disabled:opacity-50"
+        type="button"
+        [disabled]="deleting()"
+        (click)="confirmDelete()"
+      >
+        Delete
+      </button>
+      <button class="w-full py-4 text-sm" type="button" (click)="menuFor.set(null)">Cancel</button>
+    </div>
+  </div>
+}

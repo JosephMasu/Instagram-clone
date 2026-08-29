@@ -5,6 +5,9 @@ spring:
   application:
     name: post-service
 
+  codec:
+    max-in-memory-size: 16MB
+
   mongodb:
     uri: ${MONGODB_URI:mongodb://localhost:27017/instagram_posts}
 

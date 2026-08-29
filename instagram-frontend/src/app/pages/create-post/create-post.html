@@ -1,0 +1,70 @@
+<div class="flex min-h-[calc(100vh-4rem)] flex-col">
+  <header class="flex items-center justify-between border-b border-zinc-200 px-4 py-2.5">
+    @if (preview()) {
+      <button class="text-sm" type="button" (click)="discard()">Back</button>
+    } @else {
+      <button class="text-sm" type="button" (click)="router.navigateByUrl('/')">Close</button>
+    }
+    <h1 class="text-base font-semibold">{{ preview() ? 'Create new post' : 'Create new post' }}</h1>
+    @if (preview()) {
+      <button
+        class="text-sm font-semibold text-[#0095F6] disabled:opacity-50"
+        type="button"
+        [disabled]="pending()"
+        (click)="share()"
+      >
+        {{ pending() ? 'Sharing…' : 'Share' }}
+      </button>
+    } @else {
+      <span class="w-10"></span>
+    }
+  </header>
+
+  @if (!preview()) {
+    <label
+      class="flex flex-1 cursor-pointer flex-col items-center justify-center px-6"
+      [class.bg-zinc-50]="dragging()"
+      (dragover)="$event.preventDefault(); dragging.set(true)"
+      (dragleave)="dragging.set(false)"
+      (drop)="onDrop($event)"
+    >
+      <svg class="h-24 w-24 text-zinc-800" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+        <rect x="3" y="3" width="18" height="18" rx="4" />
+        <circle cx="8.5" cy="8.5" r="1.5" />
+        <path d="M21 15l-5-5L5 21" />
+      </svg>
+      <p class="mt-4 text-xl">Drag photos and videos here</p>
+      <span class="mt-4 rounded-lg bg-[#0095F6] px-4 py-1.5 text-sm font-semibold text-white">Select from computer</span>
+      <input class="hidden" type="file" accept="image/*,video/*" (change)="onInput($event)" />
+      @if (error()) {
+        <p class="mt-4 text-sm text-red-600">{{ error() }}</p>
+      }
+    </label>
+  } @else {
+    <div class="flex min-h-0 flex-1 flex-col md:flex-row">
+      <div class="flex flex-1 items-center justify-center bg-black">
+        @if (mediaType() === 'VIDEO') {
+          <video class="max-h-[70vh] w-full object-contain" [src]="preview()" controls></video>
+        } @else {
+          <img class="max-h-[70vh] w-full object-contain" [src]="preview()" alt="" />
+        }
+      </div>
+      <div class="flex w-full flex-col border-t border-zinc-200 md:w-[340px] md:border-l md:border-t-0">
+        <div class="flex items-center gap-3 px-4 py-3">
+          <app-avatar size="sm" [src]="me.profile()?.profilePictureUrl" [name]="me.profile()?.username ?? 'you'" />
+          <span class="text-sm font-semibold">{{ me.profile()?.username }}</span>
+        </div>
+        <textarea
+          class="min-h-40 flex-1 resize-none px-4 text-sm outline-none"
+          placeholder="Write a caption…"
+          maxlength="2200"
+          [(ngModel)]="caption"
+        ></textarea>
+        <p class="px-4 pb-2 text-right text-xs text-zinc-400">{{ caption.length }}/2,200</p>
+        @if (error()) {
+          <p class="px-4 pb-3 text-sm text-red-600">{{ error() }}</p>
+        }
+      </div>
+    </div>
+  }
+</div>

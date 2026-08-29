@@ -1,0 +1,136 @@
+<div class="flex justify-center gap-[32px] md:pt-8">
+  <div class="w-full max-w-[470px]">
+    <header class="sticky top-0 z-10 flex items-center justify-between border-b border-zinc-200 bg-white px-4 py-3 md:hidden">
+      <span class="font-logo text-[26px]">Instagram</span>
+      <a routerLink="/notifications" class="text-sm font-semibold">Activity</a>
+    </header>
+
+    @if (error()) {
+      <div class="p-4 text-center">
+        <p class="text-sm text-red-600">{{ error() }}</p>
+        <button class="mt-2 text-sm font-semibold text-[#0095F6]" type="button" (click)="reload()">
+          Try again
+        </button>
+      </div>
+    }
+    @if (loading()) {
+      <div class="space-y-4">
+        @for (_ of [1, 2, 3]; track $index) {
+          <article class="border-b border-zinc-200 bg-white md:rounded-lg md:border">
+            <div class="flex items-center gap-3 px-3 py-2.5">
+              <div class="ig-skeleton h-8 w-8 rounded-full"></div>
+              <div class="ig-skeleton h-3 w-28 rounded"></div>
+            </div>
+            <div class="ig-skeleton aspect-square w-full"></div>
+            <div class="space-y-2 px-3 py-3">
+              <div class="ig-skeleton h-3 w-24 rounded"></div>
+              <div class="ig-skeleton h-3 w-3/4 rounded"></div>
+            </div>
+          </article>
+        }
+      </div>
+    }
+    @if (!loading() && posts().length === 0 && !error()) {
+      <div class="px-8 py-20 text-center">
+        <h2 class="text-2xl font-semibold">Welcome to Instagram</h2>
+        <p class="mt-2 text-sm text-zinc-500">When you follow people, you'll see the photos they post here.</p>
+        <a routerLink="/create" class="mt-4 inline-block text-sm font-semibold text-[#0095F6]">Create your first post</a>
+      </div>
+    }
+
+    @for (post of posts(); track post.id) {
+      <article class="mb-3 border-b border-zinc-200 bg-white md:mb-4 md:rounded-lg md:border">
+        <div class="flex items-center gap-3 px-3 py-2.5">
+          <a [routerLink]="['/profile', author(post)?.username ?? 'me']">
+            <app-avatar size="sm" [src]="author(post)?.profilePictureUrl" [name]="author(post)?.username ?? 'user'" />
+          </a>
+          <div class="min-w-0 flex-1">
+            <a class="text-sm font-semibold" [routerLink]="['/profile', author(post)?.username ?? 'me']">
+              {{ author(post)?.username ?? 'user' }}
+            </a>
+            <p class="text-[10px] tracking-wide text-zinc-400">{{ post.createdAt | timeAgo }}</p>
+          </div>
+          <button class="px-1 text-lg font-bold text-zinc-500" type="button" aria-label="More">···</button>
+        </div>
+
+        <div class="relative cursor-pointer bg-black" (dblclick)="onMediaDblClick(post)">
+          @if (post.mediaType === 'VIDEO') {
+            <video class="max-h-[580px] w-full object-contain" [src]="post.mediaUrl" controls playsinline></video>
+          } @else {
+            <img class="max-h-[580px] w-full select-none object-contain" [src]="post.mediaUrl" [alt]="post.caption" />
+          }
+          @if (likedBurst() === post.id) {
+            <span class="ig-heart-burst pointer-events-none absolute left-1/2 top-1/2 text-white">
+              <svg class="h-24 w-24 drop-shadow-lg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 21s-7-4.35-9.33-8.5C.5 9.2 2.2 5 6.2 5c2.1 0 3.5 1.2 4.3 2.3C11.3 6.2 12.7 5 14.8 5c4 0 5.7 4.2 3.53 7.5C19 16.65 12 21 12 21z" />
+              </svg>
+            </span>
+          }
+        </div>
+
+        <div class="px-3 pb-3 pt-2">
+          <div class="mb-2 flex items-center gap-4">
+            <button class="flex items-center gap-1.5" type="button" (click)="toggleLike(post)" [attr.aria-label]="post.isLiked ? 'Unlike' : 'Like'">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" [attr.fill]="post.isLiked ? '#ed4956' : 'none'" [attr.stroke]="post.isLiked ? '#ed4956' : 'currentColor'" stroke-width="1.8">
+                <path d="M12 21s-7-4.35-9.33-8.5C.5 9.2 2.2 5 6.2 5c2.1 0 3.5 1.2 4.3 2.3C11.3 6.2 12.7 5 14.8 5c4 0 5.7 4.2 3.53 7.5C19 16.65 12 21 12 21z" />
+              </svg>
+              @if (post.likeCount > 0) {
+                <span class="text-sm font-semibold">{{ post.likeCount }}</span>
+              }
+            </button>
+            <a class="flex items-center gap-1.5" [routerLink]="['/p', post.id]" [queryParams]="{ focus: 'comment' }" aria-label="Comment">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M21 11.5a8.4 8.4 0 0 1-1.2 4.4 8.5 8.5 0 0 1-7.3 4.1 8.4 8.4 0 0 1-4.4-1.2L3 21l2.2-5.1A8.4 8.4 0 0 1 4 11.5 8.5 8.5 0 0 1 8.1 4.2 8.4 8.4 0 0 1 12.5 3h.5A8.5 8.5 0 0 1 21 11.5z" />
+              </svg>
+              @if (post.commentCount > 0) {
+                <span class="text-sm font-semibold">{{ post.commentCount }}</span>
+              }
+            </a>
+            <button class="ml-auto" type="button" (click)="toggleSave(post.id)" [attr.aria-label]="saved()[post.id] ? 'Remove from saved' : 'Save'">
+              <svg class="h-6 w-6" viewBox="0 0 24 24" [attr.fill]="saved()[post.id] ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.8">
+                <path d="M6 3h12v18l-6-4.2L6 21V3z" />
+              </svg>
+            </button>
+          </div>
+
+          @if (post.caption) {
+            <p class="mt-1 text-sm">
+              <a class="font-semibold" [routerLink]="['/profile', author(post)?.username ?? 'me']">{{ author(post)?.username ?? 'user' }}</a>
+              {{ post.caption }}
+            </p>
+          }
+
+          @if (post.commentCount > 0) {
+            <a [routerLink]="['/p', post.id]" class="mt-1 block text-sm text-zinc-500">
+              View all comments
+            </a>
+          }
+
+          <a
+            [routerLink]="['/p', post.id]"
+            [queryParams]="{ focus: 'comment' }"
+            class="mt-2 block border-t border-zinc-100 pt-2 text-sm text-zinc-400"
+          >
+            Add a comment…
+          </a>
+        </div>
+      </article>
+    }
+  </div>
+
+  <aside class="hidden w-[319px] shrink-0 pt-4 xl:block">
+    @if (me.profile(); as profile) {
+      <div class="flex items-center gap-3">
+        <a routerLink="/profile/me">
+          <app-avatar size="md" [src]="profile.profilePictureUrl" [name]="profile.username" />
+        </a>
+        <div class="min-w-0 flex-1">
+          <a class="block text-sm font-semibold" routerLink="/profile/me">{{ profile.username }}</a>
+          <p class="truncate text-sm text-zinc-500">{{ profile.firstName }} {{ profile.lastName }}</p>
+        </div>
+        <a routerLink="/profile/me" class="text-xs font-semibold text-[#0095F6]">View</a>
+      </div>
+    }
+    <p class="mt-8 text-[12px] text-zinc-400">© {{ 2026 }} Instagram from Meta</p>
+  </aside>
+</div>
